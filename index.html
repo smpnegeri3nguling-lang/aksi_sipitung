@@ -1124,7 +1124,39 @@ body, html {
 
         <div class="modal fade" id="modalGantiPassword" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><div class="modal-header bg-warning text-dark"><h5 class="modal-title fw-bold"><i class="fas fa-key"></i> Ganti Password</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><div class="mb-3"><label class="form-label">Password Saat Ini</label><input type="password" class="form-control" id="inpPassLama"></div><div class="mb-3"><label class="form-label">Password Baru</label><input type="password" class="form-control" id="inpPassBaru"></div><div class="mb-3"><label class="form-label">Konfirmasi Password Baru</label><input type="password" class="form-control" id="inpPassKonfirm"></div></div><div class="modal-footer"><button type="button" class="btn btn-warning w-100 fw-bold" id="btnProsesGantiPass" onclick="prosesGantiPassword()">Simpan Password Baru</button></div></div></div></div>
         
-        <div class="modal fade" id="modalInputTabungan" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><div class="modal-header bg-primary text-white"><h5 class="modal-title">Input: <span id="mdlInputNama"></span></h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div><div class="modal-body"><p class="mb-1"><b>NISN:</b> <span id="mdlInputNISN"></span></p><p class="mb-3 text-danger"><b>Biaya:</b> <span id="mdlInputBiaya"></span> / bln</p><div class="mb-3 bg-light p-2 border rounded"><div class="form-check"><input class="form-check-input border-primary" type="checkbox" id="chkTglManual" onchange="$('#wadahTglManual').toggleClass('d-none')"><label class="form-check-label text-dark fw-bold" for="chkTglManual">Input Tanggal Bayar Manual <small class="fw-normal">(Opsional)</small></label></div><div id="wadahTglManual" class="d-none mt-2"><input type="date" class="form-control border-primary" id="inpTglManual"></div></div><label class="fw-bold mb-2">Pilih Bulan Yang Dibayar:</label><div class="row" id="wadahCheckboxBulan"></div></div><div class="modal-footer"><button type="button" class="btn btn-success w-100" id="btnSimpanInput" onclick="prosesSimpanTabungan()"><i class="fas fa-save"></i> Simpan Pembayaran</button></div></div></div></div>
+   <div class="modal fade" id="modalInputTabungan" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">Input: <span id="mdlInputNama"></span></h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-1"><b>NISN:</b> <span id="mdlInputNISN"></span></p>
+                
+                <div id="mdlInputKelas"></div>
+                
+                <p class="mb-3 text-danger"><b>Biaya:</b> <span id="mdlInputBiaya"></span> / bln</p>
+                
+                <div class="mb-3 bg-light p-2 border rounded">
+                    <div class="form-check">
+                        <input class="form-check-input border-primary" type="checkbox" id="chkTglManual" onchange="$('#wadahTglManual').toggleClass('d-none')">
+                        <label class="form-check-label text-dark fw-bold" for="chkTglManual">Input Tanggal Bayar Manual <small class="fw-normal">(Opsional)</small></label>
+                    </div>
+                    <div id="wadahTglManual" class="d-none mt-2">
+                        <input type="date" class="form-control border-primary" id="inpTglManual">
+                    </div>
+                </div>
+                
+                <label class="fw-bold mb-2">Pilih Bulan Yang Dibayar:</label>
+                <div class="row" id="wadahCheckboxBulan"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-success w-100" id="btnSimpanInput" onclick="prosesSimpanTabungan()"><i class="fas fa-save"></i> Simpan Pembayaran</button>
+            </div>
+        </div>
+    </div>
+</div>
         
         <div class="modal fade" id="modalInfoTabungan" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><div class="modal-header bg-info text-white"><h5 class="modal-title">Histori: <span id="mdlInfoNama"></span></h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div><div class="modal-body bg-light"><div class="d-flex justify-content-between align-items-center mb-3"><label class="fw-bold text-secondary mb-0"><i class="fas fa-sort"></i> Urutkan Histori:</label><select class="form-select form-select-sm w-50 border-info fw-bold" id="sortInfo" onchange="renderInfoTabungan()"><option value="input">Berdasarkan Tanggal Input</option><option value="bulan">Berdasarkan Nama Bulan</option></select></div><ul class="list-group shadow-sm" id="listBulanDibayar"></ul></div><div class="modal-footer justify-content-between bg-white border-top"><button class="btn btn-outline-danger fw-bold shadow-sm" onclick="prosesCetakKartu(tempNISN)"><i class="fas fa-print"></i> Cetak Kartu Tabungan</button><button type="button" class="btn btn-secondary shadow-sm" data-bs-dismiss="modal">Tutup</button></div></div></div></div>
         
@@ -5030,14 +5062,43 @@ function loadInputTabunganPage() {
     }).catch(e => tanganiError(e)); 
 }
 
-function bukaModalInput(nisn, tpId, biaya) { 
+window.bukaModalInput = function(nisn, tpId, biaya) { 
     tempNISN = nisn; tempTahunID = tpId; tempBiayaTP = biaya; 
-    $('#chkTglManual').prop('checked', false); $('#wadahTglManual').addClass('d-none'); $('#inpTglManual').val(''); 
+    $('#chkTglManual').prop('checked', false); 
+    $('#wadahTglManual').addClass('d-none'); 
+    $('#inpTglManual').val(''); 
     
     let sP = dataGlobal.siswa.find(s => s[0].toString() === nisn.toString()); 
     $('#mdlInputNISN').text(nisn); 
     $('#mdlInputNama').text(sP ? sP[1] : "Tidak Ditemukan"); 
     $('#mdlInputBiaya').text(formatRp(biaya)); 
+
+    // ====================================================
+    // KUNCI PERBAIKAN: MENDETEKSI KELAS SPESIFIK SISWA
+    // ====================================================
+    let kelasSpesifik = "-";
+    if (sP) {
+        // 1. Ambil nama Tab yang sedang diklik/aktif (Misal: "TP 2024/2025 (Kls 9)")
+        let teksTabAktif = $('#tabInputTP .nav-link.active').text() || "";
+        
+        // 2. Tentukan dia kelas 7, 8, atau 9 berdasarkan teks di Tab tersebut
+        if (teksTabAktif.includes("7")) {
+            kelasSpesifik = sP[4] || "-"; // Index 4 = Kelas 7
+        } else if (teksTabAktif.includes("8")) {
+            kelasSpesifik = sP[5] || "-"; // Index 5 = Kelas 8
+        } else if (teksTabAktif.includes("9")) {
+            kelasSpesifik = sP[6] || "-"; // Index 6 = Kelas 9
+        } else {
+            // Jaga-jaga kalau Tab tidak terbaca, ambil kelas tertinggi yang ada isinya
+            if (sP[6] && sP[6] !== "-") kelasSpesifik = sP[6];
+            else if (sP[5] && sP[5] !== "-") kelasSpesifik = sP[5];
+            else if (sP[4] && sP[4] !== "-") kelasSpesifik = sP[4];
+        }
+    }
+    
+    // Tampilkan kelas di layar Popup (Pastikan ID mdlInputKelas sudah ditambahkan di HTML)
+    $('#mdlInputKelas').html(`<span class="badge bg-warning text-dark fs-6 mt-1 mb-2 shadow-sm"><i class="fas fa-chalkboard-teacher me-1"></i> Kelas: ${kelasSpesifik}</span>`);
+    // ====================================================
     
     // KUNCI PERBAIKAN 1: "Menunggu Persetujuan" tetap dianggap sudah dicentang (tapi dikunci)
     let tS = dataGlobal.tabungan.filter(x => 
@@ -5053,7 +5114,13 @@ function bukaModalInput(nisn, tpId, biaya) {
         h += `<div class="col-4 mb-2"><div class="form-check border p-2 ${isP?'bg-light':''}"><input type="checkbox" class="form-check-input chk-bulan" value="${b}" id="c_${b}" ${ch}><label class="form-check-label ms-1" for="c_${b}">${b}</label></div></div>`; 
     }); 
     $('#wadahCheckboxBulan').html(h); 
-    bukaModalAman('modalInputTabungan'); 
+    
+    // Gunakan bukaModalAman atau $('#modalInputTabungan').modal('show') sesuai bawaan Bapak
+    if(typeof bukaModalAman === "function") {
+        bukaModalAman('modalInputTabungan'); 
+    } else {
+        $('#modalInputTabungan').modal('show');
+    }
 }
 
 function bukaModalInfo(nisn, tpId) { 
@@ -7604,7 +7671,7 @@ window.simpanAkunStaff = function() {
         });
     }
 
-    // ====================================================
+   // ====================================================
 // 39. FITUR SCAN KAMERA & CETAK QR CODE (FINAL CLEAN)
 // ====================================================
 let html5QrcodeScanner; 
@@ -7659,15 +7726,28 @@ $('#inpScanner').off('keypress').on('keypress', function(e) {
 
 window.prosesHasilScan = function(nisnTarget) {
     let tombolInputDitemukan = null;
-    // Cari di semua tabel (Tabel Input TP atau Tabel Siswa Umum)
-    $('#kontenInputTP table tbody tr, table tbody tr').each(function() {
+
+    // 1. CARI HANYA DI TABEL TAHUN PELAJARAN YANG SEDANG AKTIF (Anti Nyasar)
+    $('#kontenInputTP .tab-pane.active table tbody tr').each(function() {
         let barisTeks = $(this).text(); 
         if (barisTeks.includes(nisnTarget)) {
             tombolInputDitemukan = $(this).find('button.btn-primary, button.btn-success, button[onclick]').first();
-            return false;
+            return false; // Berhenti mencari jika sudah ketemu
         }
     });
 
+    // 2. JIKA DI MENU TABUNGAN TIDAK KETEMU, COBA CARI DI MENU "DATA SISWA" (Jika sedang buka menu Siswa)
+    if (!tombolInputDitemukan || tombolInputDitemukan.length === 0) {
+        $('#kontenSiswa .tab-pane.active table tbody tr, #page-datasiswa .tab-pane.active table tbody tr').each(function() {
+            let barisTeks = $(this).text(); 
+            if (barisTeks.includes(nisnTarget)) {
+                tombolInputDitemukan = $(this).find('button.btn-primary, button.btn-success, button[onclick]').first();
+                return false;
+            }
+        });
+    }
+
+    // 3. EKSEKUSI KLIK JIKA KETEMU
     if (tombolInputDitemukan && tombolInputDitemukan.length > 0) {
         try { 
             let mEl = document.getElementById('modalScanBarcode');
@@ -7676,9 +7756,15 @@ window.prosesHasilScan = function(nisnTarget) {
         } catch(e){}
         
         Swal.fire({ title: 'Siswa Ditemukan!', icon: 'success', timer: 1000, showConfirmButton: false });
+        
+        // Klik tombol di tabel secara otomatis
         setTimeout(() => { tombolInputDitemukan.click(); }, 500);
     } else {
-        Swal.fire('Gagal', 'NISN ' + nisnTarget + ' tidak ditemukan di tabel.', 'error');
+        Swal.fire({
+            title: 'Gagal Memuat!', 
+            html: `NISN <b>${nisnTarget}</b> tidak ditemukan.<br><br><small>Pastikan Anda sedang membuka Tab Tahun Pelajaran yang benar untuk siswa tersebut.</small>`, 
+            icon: 'error'
+        });
         $('#inpScanner').val('').focus();
     }
 }
