@@ -1491,10 +1491,24 @@ $(document).ready(function() {
 });
 
 // ==========================================
-// 4. LOGIKA LOGIN FIREBASE (EDISI FINAL)
+// 4. LOGIKA LOGIN FIREBASE (EDISI TOAST PREMIUM)
 // ==========================================
 $('#login-form').submit(function(e) {
     e.preventDefault(); 
+    
+    // --- KONFIGURASI GAYA TOAST (Ditaruh di sini agar menyatu) ---
+    const toastSipitung = Swal.mixin({
+        toast: true,
+        position: 'top-end',
+        showConfirmButton: false,
+        timer: 3000,
+        timerProgressBar: true,
+        didOpen: (toast) => {
+            toast.addEventListener('mouseenter', Swal.stopTimer)
+            toast.addEventListener('mouseleave', Swal.resumeTimer)
+        }
+    });
+
     let btn = $('#btnLogin'); 
     let userInp = $('#username').val().trim();
     let passInp = $('#password').val().trim();
@@ -1503,13 +1517,14 @@ $('#login-form').submit(function(e) {
     if (!userInp || !passInp) return;
 
     btn.html('<i class="fas fa-spinner fa-spin"></i> Memproses...').prop('disabled', true);
-    $('#login-alert').addClass('d-none'); // Sembunyikan alert jika ada
+    $('#login-alert').addClass('d-none'); 
 
     db.ref('Database_SIPITUNG/Users/' + userInp).once('value')
     .then(function(snapshot) {
         if (snapshot.exists()) {
             let userData = snapshot.val();
-            // userData[1] adalah password di database Bapak
+            
+            // CEK PASSWORD
             if (passInp === userData[1]) {
                 let r = { 
                     status: 'success', 
@@ -1519,35 +1534,53 @@ $('#login-form').submit(function(e) {
                 };
                 currentUser = r; 
                 
-                // --- PEMBERSIHAN & PENYIMPANAN SESI ---
-                // 1. Hapus sisa-sisa kunci lama di localStorage (Penting!)
+                // --- PENYIMPANAN SESI ---
                 localStorage.removeItem('sesiSipitung'); 
-                
-                // 2. Simpan Sesi di sessionStorage (Wajib agar Tutup Browser = Logout)
                 sessionStorage.setItem('sesiSipitung', JSON.stringify(r)); 
-                
-                // 3. Simpan Waktu Aktivitas di localStorage (Untuk hitung 10 menit)
                 localStorage.setItem('lastActivitySipitung', Date.now());
                 
-                // 4. Aktifkan Penambah Nyawa
                 if(typeof mulaiActivityTracker === 'function') mulaiActivityTracker();
                 
                 let roleAsli = r.role.trim().toLowerCase();
-                btn.html('Masuk Aplikasi').prop('disabled', false);
-                
-                // --- MASUK KE MENU UTAMA ---
-                lanjutkanMasukUI(r, roleAsli);
+
+                // NOTIF SUKSES (CANTIK DI POJOK)
+                toastSipitung.fire({
+                    icon: 'success',
+                    title: 'Login Berhasil! Selamat datang, ' + r.nama
+                });
+
+                // Beri jeda 1 detik agar user sempat melihat notif sebelum pindah halaman
+                setTimeout(() => {
+                    btn.html('Masuk Aplikasi').prop('disabled', false);
+                    lanjutkanMasukUI(r, roleAsli);
+                }, 1200);
 
             } else {
+                // PASSWORD SALAH
                 btn.html('Masuk Aplikasi').prop('disabled', false);
-                alert("Password Salah!");
+                toastSipitung.fire({
+                    icon: 'warning',
+                    title: 'Password Salah!',
+                    background: '#fff3cd',
+                    color: '#856404'
+                });
             }
         } else {
+            // USERNAME TIDAK ADA
             btn.html('Masuk Aplikasi').prop('disabled', false);
-            alert("Username tidak terdaftar!");
+            toastSipitung.fire({
+                icon: 'error',
+                title: 'Username tidak terdaftar!',
+                background: '#f8d7da',
+                color: '#721c24'
+            });
         }
     }).catch(function(error) {
         btn.html('Masuk Aplikasi').prop('disabled', false);
+        toastSipitung.fire({
+            icon: 'error',
+            title: 'Gagal terhubung ke database!'
+        });
         console.error("Gagal Login:", error);
     });
 });
