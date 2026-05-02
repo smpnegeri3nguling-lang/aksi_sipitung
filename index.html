@@ -8086,10 +8086,12 @@ window.downloadDataSiswaCSV = function() {
     }).catch(e => tanganiError(e));
 }
 
-    // ========================================================
-// 30 1. FUNGSI PERSIAPAN DROPDOWN IMPORT (MENCEGAH KOSONG)
+// ========================================================
+// 30 1. FUNGSI PERSIAPAN DROPDOWN IMPORT (MENCEGAH KOSONG & SALAH PETUGAS)
 // ========================================================
 // Panggil fungsi ini saat Bapak menekan tombol "Import Data" / Buka Modal Import
+// ========================================================
+
 // ========================================================
 // 1. FUNGSI PENGISI DROPDOWN TAHUN PELAJARAN (SMART FILTER AKTIF)
 // ========================================================
@@ -8100,12 +8102,17 @@ window.siapkanDropdownImport = function() {
     // Ubah ke huruf kecil semua agar tidak ada masalah Case Sensitive
     let namaLogin = (currentUser.nama || '').toString().trim().toLowerCase();
     
+    // JURUS SAKTI: Hapus spasi dan simbol untuk mencegah typo di database
+    let namaLoginStrip = namaLogin.replace(/[^a-z0-9]/g, ''); 
+    
     // KUNCI: Hanya ambil TP milik petugas ini DAN yang statusnya "Aktif"
-    let tpPetugas = dataGlobal.tp.filter(t => 
-        t && 
-        (t[3]||'').toString().trim().toLowerCase() === namaLogin && 
-        t[5] !== 'Nonaktif'
-    );
+    let tpPetugas = dataGlobal.tp.filter(t => {
+        if (!t) return false;
+        let namaDb = (t[3]||'').toString().trim().toLowerCase();
+        let namaDbStrip = namaDb.replace(/[^a-z0-9]/g, '');
+        
+        return (namaDb === namaLogin || namaDbStrip === namaLoginStrip) && t[5] !== 'Nonaktif';
+    });
     
     // Urutkan dari tahun lama ke baru
     tpPetugas.sort((a, b) => parseInt(a[1]) - parseInt(b[1]));
@@ -8115,12 +8122,16 @@ window.siapkanDropdownImport = function() {
         optTp += `<option value="${t[0]}">${t[1]} (Kls ${t[2]})</option>`;
     });
     
-    $('#selTpImport').html(optTp);
+    // Render HTML dan tanamkan tanda pengenal petugas di dropdown-nya
+    $('#selTpImport').html(optTp).attr('data-petugas', namaLoginStrip);
 }
 
-// TRIK SAKTI: Otomatis isi data saat kotak dropdown diklik atau disentuh!
-$(document).on('click focus', '#selTpImport', function() {
-    if($(this).children('option').length <= 1) {
+// TRIK SAKTI: Otomatis isi data saat kotak dropdown disentuh/diklik!
+$(document).on('mouseenter focus click', '#selTpImport', function() {
+    let namaSaatIni = (typeof currentUser !== 'undefined' && currentUser.nama) ? currentUser.nama.toString().trim().toLowerCase().replace(/[^a-z0-9]/g, '') : "";
+    
+    // JIKA dropdown kosong ATAU dropdown masih menyimpan data petugas lama, REFRESH!
+    if($(this).children('option').length <= 1 || $(this).attr('data-petugas') !== namaSaatIni) {
         window.siapkanDropdownImport();
     }
 });
@@ -8129,7 +8140,12 @@ $(document).on('click focus', '#selTpImport', function() {
 // 2. FUNGSI DOWNLOAD TEMPLATE (ANTI-CAMPUR DENGAN SMART ANCHOR)
 // ========================================================
 window.downloadTemplateDinamis = function() {
-    if($('#selTpImport option').length <= 1) { window.siapkanDropdownImport(); }
+    let namaSaatIni = (typeof currentUser !== 'undefined' && currentUser.nama) ? currentUser.nama.toString().trim().toLowerCase().replace(/[^a-z0-9]/g, '') : "";
+    
+    // Cek ulang sebelum download
+    if($('#selTpImport option').length <= 1 || $('#selTpImport').attr('data-petugas') !== namaSaatIni) { 
+        window.siapkanDropdownImport(); 
+    }
 
     let tpId = $('#selTpImport').val();
     if(!tpId) return notifikasiAman("Pilih Tahun Pelajaran di kotak dropdown terlebih dahulu!", "warning");
@@ -8139,6 +8155,7 @@ window.downloadTemplateDinamis = function() {
     let tingkatKls = tpObj[2].toString().trim(); // Deteksi "7", "8", atau "9"
     
     let namaLogin = (currentUser.nama || '').toString().trim().toLowerCase();
+    let namaLoginStrip = namaLogin.replace(/[^a-z0-9]/g, '');
     
     // ========================================================
     // LOGIKA SMART ANCHOR (KUNCI LACI BERDASARKAN TINGKAT)
@@ -8149,7 +8166,12 @@ window.downloadTemplateDinamis = function() {
     else laciOffset = 0; // Default untuk kelas 7
     
     // Ambil siswa milik petugas ini
-    let sswPetugas = dataGlobal.siswa.filter(s => s && (s[7]||'').toString().trim().toLowerCase() === namaLogin);
+    let sswPetugas = dataGlobal.siswa.filter(s => {
+        if(!s) return false;
+        let pDb = (s[7]||'').toString().trim().toLowerCase();
+        let pDbStrip = pDb.replace(/[^a-z0-9]/g, '');
+        return pDb === namaLogin || pDbStrip === namaLoginStrip;
+    });
     
     // KUNCI UTAMA: Saring HANYA siswa yang KTP JANGKAR-nya cocok dengan TP yang dipilih!
     let sswValid = sswPetugas.filter(s => {
