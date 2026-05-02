@@ -9676,12 +9676,20 @@ window.renderDanCetakKartu = async function(arrayDataSiswa, opsiLabel = "Masal")
             doc.setTextColor(100, 100, 100); doc.setFontSize(7);
             doc.text("NAMA LENGKAP:", startX + 5, startY + 31);
             
-            // ---> FIX WARNA BIRU DI SINI <---
-            doc.setTextColor(13, 110, 253); doc.setFontSize(10); // Warna Biru Elegan
-            
-            // Potong nama jika terlalu panjang (max 22 karakter)
+            // ---> FIX WARNA BIRU & UKURAN DINAMIS <---
+            doc.setTextColor(13, 110, 253); // Warna Biru Elegan
             let namaTampil = s.nama.toUpperCase();
-            if(namaTampil.length > 22) namaTampil = namaTampil.substring(0, 22) + "...";
+            
+            // Logika Auto-Fit: Mengecilkan font jika nama menabrak garis QR (Batas lebar ~52mm)
+            let fontSizeNama = 10; 
+            doc.setFontSize(fontSizeNama);
+            let maxLebarNama = 52; 
+
+            while(doc.getTextWidth(namaTampil) > maxLebarNama && fontSizeNama > 5) {
+                fontSizeNama -= 0.5;
+                doc.setFontSize(fontSizeNama);
+            }
+            
             doc.text(namaTampil, startX + 5, startY + 36);
 
             doc.setTextColor(100, 100, 100); doc.setFontSize(7);
