@@ -1260,8 +1260,44 @@ body, html {
     </div>
 </div>
         
-        <div class="modal fade" id="modalInfoTabungan" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><div class="modal-header bg-info text-white"><h5 class="modal-title">Histori: <span id="mdlInfoNama"></span></h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div><div class="modal-body bg-light"><div class="d-flex justify-content-between align-items-center mb-3"><label class="fw-bold text-secondary mb-0"><i class="fas fa-sort"></i> Urutkan Histori:</label><select class="form-select form-select-sm w-50 border-info fw-bold" id="sortInfo" onchange="renderInfoTabungan()"><option value="input">Berdasarkan Tanggal Input</option><option value="bulan">Berdasarkan Nama Bulan</option></select></div><ul class="list-group shadow-sm" id="listBulanDibayar"></ul></div><div class="modal-footer justify-content-between bg-white border-top"><button class="btn btn-outline-danger fw-bold shadow-sm" onclick="prosesCetakKartu(tempNISN)"><i class="fas fa-print"></i> Cetak Kartu Tabungan</button><button type="button" class="btn btn-secondary shadow-sm" data-bs-dismiss="modal">Tutup</button></div></div></div></div>
-        
+        <!-- MODAL INFO / HISTORI TABUNGAN SISWA -->
+<div class="modal fade" id="modalInfoTabungan" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-history me-2"></i>Histori: <span id="mdlInfoNama"></span>
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body bg-light">
+                <!-- WADAH KELAS SISWA (Sinkron dengan JS Modulo 3) -->
+                <div id="mdlInfoKelas" class="text-start mb-2"></div>
+
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <label class="fw-bold text-secondary mb-0">
+                        <i class="fas fa-sort me-1"></i> Urutkan Histori:
+                    </label>
+                    <select class="form-select form-select-sm w-50 border-info fw-bold shadow-sm" id="sortInfo" onchange="renderInfoTabungan()">
+                        <option value="input">Berdasarkan Tanggal Input</option>
+                        <option value="bulan">Berdasarkan Nama Bulan</option>
+                    </select>
+                </div>
+                
+                <ul class="list-group shadow-sm" id="listBulanDibayar" style="max-height: 350px; overflow-y: auto;">
+                    <!-- Data histori akan dirender di sini oleh JS -->
+                </ul>
+            </div>
+            <div class="modal-footer justify-content-between bg-white border-top">
+                <button class="btn btn-outline-danger fw-bold shadow-sm" onclick="prosesCetakKartu(tempNISN)">
+                    <i class="fas fa-print me-1"></i> Cetak Kartu Tabungan
+                </button>
+                <button type="button" class="btn btn-secondary shadow-sm" data-bs-dismiss="modal">Tutup</button>
+            </div>
+        </div>
+    </div>
+</div>
+
         <div class="modal fade" id="modalEditSetoran" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><div class="modal-header bg-warning text-dark"><h5 class="modal-title fw-bold"><i class="fas fa-edit"></i> Edit Data Setoran</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><div class="alert alert-info py-2"><i class="fas fa-info-circle"></i> Setelah diedit, data akan kembali berstatus "Menunggu Konfirmasi".</div><input type="hidden" id="inpEditSetorId"><div class="mb-3"><label class="form-label fw-bold">Tanggal Setor</label><input type="date" class="form-control border-warning" id="inpEditSetorTgl"></div><div class="mb-3"><label class="form-label fw-bold">Kelas Spesifik</label><input type="text" class="form-control border-warning" id="inpEditSetorKelas"></div><div class="mb-3"><label class="form-label fw-bold">Jumlah Setoran (Rp)</label><input type="text" class="form-control border-warning" id="inpEditSetorJumlah" oninput="formatInputUang(this)"></div></div><div class="modal-footer"><button type="button" class="btn btn-warning w-100 fw-bold" id="btnSimpanEditSetoran" onclick="prosesSimpanEditSetoran()"><i class="fas fa-save"></i> Simpan Perbaikan</button></div></div></div></div>
 
         
@@ -2336,32 +2372,124 @@ function renderKeuanganPages() {
     try { renderBankPinjaman(); } catch(e) {} 
 }
 
+// ========================================================
+// FUNGSI BUKA MODAL PENGECUALIAN (FIX: RADAR PENCARI MULTI-GUDANG)
+// ========================================================
 window.bukaModalPengecualian = function(nisn, namaAman) {
-    $('#inpExcNISN').val(nisn); $('#mdlExcNama').text(namaAman);
-    let excObj = dataKeuanganGlobal.pengecualian || {}; let myExc = excObj[nisn] || [];
+    $('#inpExcNISN').val(nisn); 
+    $('#mdlExcNama').text(namaAman);
+    
+    let excObj = dataKeuanganGlobal.pengecualian || {}; 
+    let myExc = excObj[nisn] || [];
     let h = '';
-    if(dataKeuanganGlobal.potonganLulusan.length === 0) { h = '<p class="text-muted text-center mb-0">Belum ada kategori potongan kelas 9 yang diatur.</p>'; } 
-    else {
-        dataKeuanganGlobal.potonganLulusan.forEach(p => {
-            let isChecked = myExc.includes(p[1]) ? 'checked' : '';
-            h += `<div class="form-check fs-6 mb-2"><input class="form-check-input chk-exc border-danger" type="checkbox" value="${p[1]}" id="exc_${p[0]}" ${isChecked}><label class="form-check-label text-dark fw-bold" for="exc_${p[0]}">Bebaskan dari <span class="text-danger">${p[1]}</span></label></div>`;
-        });
+    
+    let potonganListRaw = [];
+    if (dataKeuanganGlobal.potonganLulusan) {
+        potonganListRaw = Array.isArray(dataKeuanganGlobal.potonganLulusan) ? dataKeuanganGlobal.potonganLulusan : Object.values(dataKeuanganGlobal.potonganLulusan);
     }
-    $('#wadahCheckboxPengecualian').html(h); bukaModalAman('modalPengecualian');
+    
+    if(!potonganListRaw || potonganListRaw.length === 0) { 
+        h = '<p class="text-muted text-center mb-0">Belum ada kategori potongan kelas 9 yang diatur.</p>'; 
+    } else {
+        // 1. JURUS RADAR SUPER: Cari siswa di semua gudang data secara berurutan
+        let sP = null;
+        let gudangPencarian = [];
+        
+        // Kumpulkan semua data yang ada (prioritaskan Keuangan karena paling sering di-refresh)
+        if (typeof dataKeuanganGlobal !== 'undefined' && dataKeuanganGlobal.siswa) {
+            gudangPencarian.push(Array.isArray(dataKeuanganGlobal.siswa) ? dataKeuanganGlobal.siswa : Object.values(dataKeuanganGlobal.siswa));
+        }
+        if (typeof dataSiswaGlobal !== 'undefined' && dataSiswaGlobal.siswa) {
+            gudangPencarian.push(Array.isArray(dataSiswaGlobal.siswa) ? dataSiswaGlobal.siswa : Object.values(dataSiswaGlobal.siswa));
+        }
+        if (typeof dataGlobal !== 'undefined' && dataGlobal.siswa) {
+            gudangPencarian.push(Array.isArray(dataGlobal.siswa) ? dataGlobal.siswa : Object.values(dataGlobal.siswa));
+        }
+
+        // Lakukan pencarian menyapu semua gudang sampai ketemu
+        for (let arrSiswa of gudangPencarian) {
+            sP = arrSiswa.find(s => s && s[0] && s[0].toString() === nisn.toString());
+            if (sP) break; // Jika ketemu, hentikan pencarian
+        }
+
+        // Kumpulkan kantong Masa Bakti milik siswa tersebut (Index 8, 9, 10)
+        let studentTpIds = [];
+        if (sP) {
+            if (sP[8]) studentTpIds.push(sP[8].toString().trim());
+            if (sP[9]) studentTpIds.push(sP[9].toString().trim());
+            if (sP[10]) studentTpIds.push(sP[10].toString().trim());
+        }
+
+        // 2. FILTER POTONGAN DENGAN LOGIKA "INCLUDES" MASA BAKTI
+        let filterPotongan = potonganListRaw.filter(p => {
+            if (!p) return false;
+            let targetPotongan = (p[4] || "Semua").toString().trim(); 
+            
+            // Loloskan otomatis jika Potongan bersifat "Global" (semua siswa)
+            if (targetPotongan === "" || targetPotongan === "-" || targetPotongan.toLowerCase() === "global" || targetPotongan.toLowerCase() === "semua") {
+                return true;
+            }
+            
+            // Loloskan jika ID TP siswa (salah satu dari 3 kantong) ADA DI DALAM string targetPotongan
+            return studentTpIds.some(idTp => idTp !== "" && targetPotongan.includes(idTp));
+        });
+
+        // 3. HAPUS DUPLIKAT NAMA (Mencegah nama potongan kembar muncul 2 kali di layar)
+        let uniquePotongan = [];
+        let seenNames = new Set();
+        filterPotongan.forEach(p => {
+            let namaPot = (p[1] || "").trim();
+            if(namaPot && !seenNames.has(namaPot)) {
+                seenNames.add(namaPot);
+                uniquePotongan.push(p);
+            }
+        });
+
+        if (uniquePotongan.length === 0) {
+            h = '<p class="text-muted text-center mb-0 text-danger fw-bold"><i class="fas fa-info-circle"></i> Tidak ada tagihan potongan yang berlaku untuk masa bakti siswa ini.</p>';
+        } else {
+            uniquePotongan.forEach(p => {
+                let isChecked = myExc.includes(p[1]) ? 'checked' : '';
+                h += `<div class="form-check fs-6 mb-2"><input class="form-check-input chk-exc border-danger shadow-sm" type="checkbox" value="${p[1]}" id="exc_${p[0]}" ${isChecked}><label class="form-check-label text-dark fw-bold" for="exc_${p[0]}">Bebaskan dari <span class="text-danger">${p[1]}</span></label></div>`;
+            });
+        }
+    }
+    
+    $('#wadahCheckboxPengecualian').html(h); 
+    bukaModalAman('modalPengecualian');
 }
 
+// ========================================================
+// FUNGSI SIMPAN PENGECUALIAN KE FIREBASE
+// ========================================================
 window.simpanPengecualian = function() {
-    let nisn = $('#inpExcNISN').val(); let excObj = dataKeuanganGlobal.pengecualian || {};
-    let checkedList = []; $('.chk-exc:checked').each(function(){ checkedList.push($(this).val()); });
-    if(checkedList.length > 0) { excObj[nisn] = checkedList; } else { delete excObj[nisn]; } 
+    let nisn = $('#inpExcNISN').val(); 
+    let excObj = dataKeuanganGlobal.pengecualian || {};
+    let checkedList = []; 
+    
+    $('.chk-exc:checked').each(function(){ 
+        checkedList.push($(this).val()); 
+    });
+    
+    if(checkedList.length > 0) { 
+        excObj[nisn] = checkedList; 
+    } else { 
+        delete excObj[nisn]; 
+    } 
+    
     $('#btnSimpanPengecualian').html('<i class="fas fa-spinner fa-spin"></i> Menyimpan...').prop('disabled', true);
+    
     db.ref('Database_SIPITUNG/Pengaturan/Pengecualian_SIPITUNG').set(excObj).then(() => {
-        bersihkanCache(); dataKeuanganGlobal.pengecualian = excObj; 
+        if(typeof bersihkanCache === 'function') bersihkanCache(); 
+        dataKeuanganGlobal.pengecualian = excObj; 
         $('#btnSimpanPengecualian').html('Simpan Pembebasan').prop('disabled', false);
         try { bootstrap.Modal.getInstance(document.getElementById('modalPengecualian')).hide(); } catch(e){}
         Swal.fire({title: 'Tersimpan!', text: 'Aturan pembebasan potongan berhasil diterapkan.', icon: 'success', timer: 1500, showConfirmButton: false});
-        renderKeuanganPages(); 
-    }).catch(e => { $('#btnSimpanPengecualian').html('Simpan Pembebasan').prop('disabled', false); tanganiError(e); });
+        if(typeof renderKeuanganPages === 'function') renderKeuanganPages(); 
+    }).catch(e => { 
+        $('#btnSimpanPengecualian').html('Simpan Pembebasan').prop('disabled', false); 
+        if(typeof tanganiError === 'function') tanganiError(e); else console.error(e);
+    });
 }
 
 // ==========================================
@@ -2610,8 +2738,29 @@ window.renderRekapLulusan = function() {
 
     let arrSiswaTarget = Array.isArray(targetFolderSiswa) ? targetFolderSiswa : Object.values(targetFolderSiswa);
     let arrTabunganTarget = Array.isArray(targetFolderTabungan) ? targetFolderTabungan : Object.values(targetFolderTabungan);
-    let potonganList = Array.isArray(targetFolderPotongan) ? targetFolderPotongan : Object.values(targetFolderPotongan);
-    potonganList = potonganList.filter(p => p && p.length > 0).sort((a,b) => Number(a[3]) - Number(b[3]));
+    let potonganListRaw = Array.isArray(targetFolderPotongan) ? targetFolderPotongan : Object.values(targetFolderPotongan);
+    potonganListRaw = potonganListRaw.filter(p => p && p.length > 0).sort((a,b) => Number(a[3]) - Number(b[3]));
+
+    // ========================================================
+    // JURUS SAKTI: FILTER POTONGAN & HAPUS DUPLIKAT KOLOM (ANTI-DOUBLE WISUDA)
+    // ========================================================
+    let uniquePotongan = [];
+    let seenPotNames = new Set();
+    potonganListRaw.forEach(p => {
+        let target = (p[4] || 'Semua').toString().trim();
+        // Pastikan potongan ini masuk ke dalam Masa Bakti yang sedang difilter
+        let isCocokTp = (target === 'Semua' || target === '' || target === '-' || target.toLowerCase() === 'global') ? true : tpIdsArr.some(id => target.includes(id));
+        let nmPot = (p[1] || "").trim();
+        
+        // Jika cocok dengan masa bakti DAN namanya belum pernah dimasukkan ke daftar, masukkan!
+        if (isCocokTp && nmPot && !seenPotNames.has(nmPot)) {
+            seenPotNames.add(nmPot);
+            uniquePotongan.push(p);
+        }
+    });
+    // Ganti list potongan utama dengan yang sudah bersih dari duplikat
+    let potonganList = uniquePotongan; 
+    // ========================================================
 
     let arrPengeluaran = [];
     if (d.pengeluaran) arrPengeluaran.push(...Object.values(d.pengeluaran));
@@ -5387,7 +5536,7 @@ window.logoutMaintenance = function() {
 }
 
 // ==========================================
-// 1. FUNGSI EKSEKUSI LULUSKAN & ARSIPKAN (V4.9 SMART ANCHOR + KAS + PENGECUALIAN)
+// 1. FUNGSI EKSEKUSI LULUSKAN & ARSIPKAN (V4.9 SMART ANCHOR + KAS + PENGECUALIAN + STATUS KEMBALI)
 // ==========================================
 window.prosesArsipSiswaPetugas = async function() {
     let p = $('#hapusSiswaPetugas').val(); 
@@ -5416,7 +5565,7 @@ window.prosesArsipSiswaPetugas = async function() {
             title: 'Pilih Angkatan Lulusan',
             html: `
                 <div class="text-start mb-3 small text-muted">
-                    Pilih <b>Tahun Pelajaran</b> yang akan diarsipkan. Data Siswa, Tabungan, Setoran, Pengeluaran, Potongan, dan Pengecualian akan dipindah ke brankas arsip secara otomatis.
+                    Pilih <b>Tahun Pelajaran</b> yang akan diarsipkan. Data Siswa, Tabungan, Setoran, Pengeluaran, Potongan, Pengecualian, dan <b>Status Kembali</b> akan dipindah ke brankas arsip secara otomatis.
                 </div>
                 <select id="swalLulusTp" class="form-select border-success fw-bold text-success">
                     ${optHtml}
@@ -5439,15 +5588,16 @@ window.prosesArsipSiswaPetugas = async function() {
         $('#btnArsipSiswa').html('<i class="fas fa-spinner fa-spin"></i> Memproses...').prop('disabled', true);
         Swal.fire({title: 'Memproses...', text: 'Memilah data dan merekam histori...', allowOutsideClick: false, didOpen: () => Swal.showLoading()});
 
-        // V4.9: Tarik semua database ekstra (Pengeluaran, Potongan, Pengecualian)
-        let [snapSiswa, snapTabungan, snapSetoran, snapTarget, snapPengeluaran, snapPotongan, snapPengecualian] = await Promise.all([
+        // V4.9 FIX: Tarik semua database ekstra (termasuk StatusKembali)
+        let [snapSiswa, snapTabungan, snapSetoran, snapTarget, snapPengeluaran, snapPotongan, snapPengecualian, snapStatusKembali] = await Promise.all([
             db.ref('Database_SIPITUNG/Siswa').once('value'),
             db.ref('Database_SIPITUNG/Tabungan').once('value'),
             db.ref('Database_SIPITUNG/Setoran').once('value'),
             db.ref('Database_SIPITUNG/Pengaturan/TargetBulan_SIPITUNG').once('value'),
             db.ref('Database_SIPITUNG/PengeluaranSekolah').once('value'),
             db.ref('Database_SIPITUNG/PotonganLulusan').once('value'),
-            db.ref('Database_SIPITUNG/Pengaturan/Pengecualian_SIPITUNG').once('value')
+            db.ref('Database_SIPITUNG/Pengaturan/Pengecualian_SIPITUNG').once('value'),
+            db.ref('Database_SIPITUNG/StatusKembali').once('value') 
         ]);
 
         let allSiswa = snapSiswa.val() || {};
@@ -5458,6 +5608,7 @@ window.prosesArsipSiswaPetugas = async function() {
         let allPengeluaran = snapPengeluaran.val() || {};
         let allPotongan = snapPotongan.val() || {};
         let allPengecualian = snapPengecualian.val() || {};
+        let allStatusKembali = snapStatusKembali.val() || {}; 
 
         let updates = {}; let adaData = false; let nisnTarget = [];
         let targetJejakTp = new Set(); 
@@ -5504,22 +5655,27 @@ window.prosesArsipSiswaPetugas = async function() {
                 let tpStr = pData[6] || '';
                 let arrTp = tpStr.split(',');
 
-                // Smart Filter: Cari kata "LAIN" (Misal: Pemasukan Lain, Pengeluaran Lain-lain)
                 let isKasLain = specK.includes('LAIN');
 
-                // Jika Petugas cocok, TP cocok, dan BUKAN kas abadi (Lain-lain) -> Pindah ke Riwayat
                 if (petK === p.trim() && arrTp.includes(selectedTpId) && !isKasLain) {
                     updates['Database_SIPITUNG/RiwayatPengeluaran/' + idK] = pData;
                     updates['Database_SIPITUNG/PengeluaranSekolah/' + idK] = null;
                 }
             }
 
-            // 4. V4.9: Filter Potongan Lulusan (Suntik ID TP di index 4)
+            // =========================================================
+            // 4. FIX SUPER: Filter Potongan Lulusan (Anti-Overwite & Anti-Salah Tarik)
+            // =========================================================
             for (let idP in allPotongan) {
                 let potData = allPotongan[idP];
-                potData[4] = selectedTpId; // Suntik ID TP kelulusan
-                updates['Database_SIPITUNG/RiwayatPotonganLulusan/' + idP] = potData;
-                updates['Database_SIPITUNG/PotonganLulusan/' + idP] = null;
+                let targetPot = (potData[4] || '').toString();
+                
+                // HANYA tarik potongan yang ID TP-nya mengandung selectedTpId
+                if (targetPot.includes(selectedTpId)) {
+                    // KITA HAPUS baris potData[4] = selectedTpId; agar string asli tetap utuh untuk Undo
+                    updates['Database_SIPITUNG/RiwayatPotonganLulusan/' + idP] = potData;
+                    updates['Database_SIPITUNG/PotonganLulusan/' + idP] = null;
+                }
             }
 
             let tpArsip = {};
@@ -5540,16 +5696,22 @@ window.prosesArsipSiswaPetugas = async function() {
                 updates['Database_SIPITUNG/Siswa/' + nisn] = null; 
                 updates['Database_SIPITUNG/ArsipPengaturanLulusan/' + nisn] = arsipDataKenangan;
 
-                // 6. V4.9: Pindah Pengecualian SIPITUNG ke Riwayat (Sesuai NISN)
+                // 6. V4.9: Pindah Pengecualian SIPITUNG ke Riwayat
                 if(allPengecualian[nisn]) {
                     updates['Database_SIPITUNG/RiwayatPengecualian_SIPITUNG/' + nisn] = allPengecualian[nisn];
                     updates['Database_SIPITUNG/Pengaturan/Pengecualian_SIPITUNG/' + nisn] = null;
+                }
+
+                // 7. FIX: Pindah StatusKembali ke RiwayatStatusKembali
+                if(allStatusKembali[nisn]) {
+                    updates['Database_SIPITUNG/RiwayatStatusKembali/' + nisn] = allStatusKembali[nisn];
+                    updates['Database_SIPITUNG/StatusKembali/' + nisn] = null;
                 }
             });
 
             await db.ref().update(updates);
             if (typeof bersihkanCache === 'function') bersihkanCache();
-            Swal.fire('Berhasil!', `Sistem berhasil memindahkan <b>${nisnTarget.length} siswa</b> beserta Kas dan Potongan ke brankas arsip dengan aman.`, 'success');
+            Swal.fire('Berhasil!', `Sistem berhasil memindahkan <b>${nisnTarget.length} siswa</b> beserta Kas, Potongan, dan <b>Status Kembali</b> ke brankas arsip dengan aman.`, 'success');
         } else {
             Swal.fire('Info', 'Tidak ada data siswa yang terhubung dengan Tahun Pelajaran tersebut.', 'info');
         }
@@ -6152,33 +6314,25 @@ window.bukaModalInput = function(nisn, tpId, biaya) {
     $('#mdlInputBiaya').text(formatRp(biaya)); 
 
     // ====================================================
-    // KUNCI PERBAIKAN: MENDETEKSI KELAS SPESIFIK SISWA
+    // FIX SINKRONISASI KELAS (ANTI-BUG 2 MASA BAKTI)
     // ====================================================
     let kelasSpesifik = "-";
     if (sP) {
-        // 1. Ambil nama Tab yang sedang diklik/aktif (Misal: "TP 2024/2025 (Kls 9)")
-        let teksTabAktif = $('#tabInputTP .nav-link.active').text() || "";
+        // Ambil urutan/index tab yang sedang aktif (0, 1, 2, 3, 4, 5...)
+        let indexTabAktif = $('#tabInputTP .nav-item').index($('#tabInputTP .nav-link.active').parent());
         
-        // 2. Tentukan dia kelas 7, 8, atau 9 berdasarkan teks di Tab tersebut
-        if (teksTabAktif.includes("7")) {
-            kelasSpesifik = sP[4] || "-"; // Index 4 = Kelas 7
-        } else if (teksTabAktif.includes("8")) {
-            kelasSpesifik = sP[5] || "-"; // Index 5 = Kelas 8
-        } else if (teksTabAktif.includes("9")) {
-            kelasSpesifik = sP[6] || "-"; // Index 6 = Kelas 9
-        } else {
-            // Jaga-jaga kalau Tab tidak terbaca, ambil kelas tertinggi yang ada isinya
-            if (sP[6] && sP[6] !== "-") kelasSpesifik = sP[6];
-            else if (sP[5] && sP[5] !== "-") kelasSpesifik = sP[5];
-            else if (sP[4] && sP[4] !== "-") kelasSpesifik = sP[4];
-        }
+        // Gunakan Modulo 3: 
+        // Index 0 & 3 = Kls 7 (sP[4]), Index 1 & 4 = Kls 8 (sP[5]), Index 2 & 5 = Kls 9 (sP[6])
+        let kolomKelas = 4 + (indexTabAktif % 3);
+        kelasSpesifik = sP[kolomKelas] || "-";
     }
     
-    // Tampilkan kelas di layar Popup (Pastikan ID mdlInputKelas sudah ditambahkan di HTML)
+    // Simpan kelas ke variabel temp agar bisa dipakai saat konfirmasi simpan
+    tempKelasSiswa = kelasSpesifik;
+
     $('#mdlInputKelas').html(`<span class="badge bg-warning text-dark fs-6 mt-1 mb-2 shadow-sm"><i class="fas fa-chalkboard-teacher me-1"></i> Kelas: ${kelasSpesifik}</span>`);
     // ====================================================
     
-    // KUNCI PERBAIKAN 1: "Menunggu Persetujuan" tetap dianggap sudah dicentang (tapi dikunci)
     let tS = dataGlobal.tabungan.filter(x => 
         x && x[1].toString() == nisn.toString() && 
         x[2].toString() == tpId.toString() && 
@@ -6188,12 +6342,11 @@ window.bukaModalInput = function(nisn, tpId, biaya) {
     let h=''; 
     bulanSetahun.forEach(b => { 
         let isP = tS.includes(b); 
-        let ch = isP ? 'checked disabled' : ''; // Checkbox tidak bisa diklik ulang
+        let ch = isP ? 'checked disabled' : ''; 
         h += `<div class="col-4 mb-2"><div class="form-check border p-2 ${isP?'bg-light':''}"><input type="checkbox" class="form-check-input chk-bulan" value="${b}" id="c_${b}" ${ch}><label class="form-check-label ms-1" for="c_${b}">${b}</label></div></div>`; 
     }); 
     $('#wadahCheckboxBulan').html(h); 
     
-    // Gunakan bukaModalAman atau $('#modalInputTabungan').modal('show') sesuai bawaan Bapak
     if(typeof bukaModalAman === "function") {
         bukaModalAman('modalInputTabungan'); 
     } else {
@@ -6201,16 +6354,49 @@ window.bukaModalInput = function(nisn, tpId, biaya) {
     }
 }
 
+
+
+// ========================================================
+// 1. FUNGSI BUKA MODAL INFO (FIX: TAMBAH KELAS SINKRON)
+// ========================================================
 function bukaModalInfo(nisn, tpId) { 
     tempNISN = nisn; 
     let sP = dataGlobal.siswa.find(s => s[0].toString() === nisn.toString()); 
     $('#mdlInfoNama').text(sP ? sP[1] : "Siswa Tidak Ditemukan"); 
+
+    // ====================================================
+    // LOGIKA SINKRONISASI KELAS (SESUAI TAB AKTIF)
+    // ====================================================
+    let kelasSpesifik = "-";
+    if (sP) {
+        // Ambil index tab aktif dari tabInputTP
+        let indexTabAktif = $('#tabInputTP .nav-item').index($('#tabInputTP .nav-link.active').parent());
+        if(indexTabAktif === -1) indexTabAktif = 0;
+
+        // Gunakan Modulo 3 agar sinkron di 2 masa bakti (6 Tab)
+        let kolomKelas = 4 + (indexTabAktif % 3);
+        kelasSpesifik = sP[kolomKelas] || "-";
+    }
+
+    // Tampilkan kelas di Modal Info (Pastikan ID mdlInfoKelas ada di HTML Bapak)[cite: 1]
+    $('#mdlInfoKelas').html(`<span class="badge bg-warning text-dark fs-6 mt-1 mb-2 shadow-sm"><i class="fas fa-chalkboard-teacher me-1"></i> Kelas: ${kelasSpesifik}</span>`);
+    // ====================================================
+
     tempInfoData = dataGlobal.tabungan.filter(x => x && x[1].toString() == nisn.toString() && x[2].toString() == tpId.toString()); 
     $('#sortInfo').val('input'); 
     renderInfoTabungan(); 
-    bukaModalAman('modalInfoTabungan'); 
+    
+    // Gunakan fungsi pembuka modal bawaan aplikasi Bapak
+    if(typeof bukaModalAman === "function") {
+        bukaModalAman('modalInfoTabungan'); 
+    } else {
+        $('#modalInfoTabungan').modal('show');
+    }
 }
 
+// ========================================================
+// 2. FUNGSI RENDER INFO TABUNGAN (HISTORI)
+// ========================================================
 function renderInfoTabungan() { 
     let sortBy = $('#sortInfo').val(); 
     let arr = [...tempInfoData]; 
@@ -6234,16 +6420,56 @@ function renderInfoTabungan() {
 }
 
 // ==========================================
-// 3. FUNGSI SIMPAN KE FIREBASE (GAMBAR 1)
+// 3. FUNGSI SIMPAN KE FIREBASE DENGAN KONFIRMASI
 // ==========================================
 function prosesSimpanTabungan() { 
+    // 1. Ambil Bulan yang dipilih
     let selectedBulan = []; 
     $('.chk-bulan:checked:not(:disabled)').each(function(){ 
         selectedBulan.push($(this).val()); 
     }); 
     
+    // Validasi Awal
     if(selectedBulan.length === 0) return notifikasiAman("Centang bulan yang ingin dibayar!", "warning"); 
     
+    // 2. Siapkan Data untuk Peringatan Konfirmasi
+    let namaSiswa = $('#mdlInputNama').text();
+    let kelasSiswa = tempKelasSiswa || "-"; // Diambil dari variabel global saat buka modal
+    let totalNominal = selectedBulan.length * tempBiayaTP;
+    let formatTotal = Number(totalNominal).toLocaleString('id-ID'); // Format 50.000
+    
+    // 3. TAMPILKAN PERINGATAN KONFIRMASI (SWEETALERT2)
+    Swal.fire({
+        title: 'Konfirmasi Data Tabungan',
+        html: `
+            <div class="text-start border p-3 rounded bg-light" style="font-family: sans-serif;">
+                <table class="table table-sm table-borderless mb-0" style="font-size: 14px;">
+                    <tr><td width="100">Nama</td><td>: <b>${namaSiswa}</b></td></tr>
+                    <tr><td>Kelas</td><td>: <b>${kelasSiswa}</b></td></tr>
+                    <tr><td>Bulan</td><td>: <span class="text-primary fw-bold">${selectedBulan.join(', ')}</span></td></tr>
+                    <tr><td colspan="2"><hr class="my-2"></td></tr>
+                    <tr><td><b style="font-size: 15px;">TOTAL</b></td><td>: <b class="text-success" style="font-size: 18px;">Rp ${formatTotal}</b></td></tr>
+                </table>
+            </div>
+            <p class="mt-3 mb-0 text-danger fw-bold" style="font-size: 13px;"><i class="fas fa-exclamation-triangle"></i> Pastikan data sudah benar sebelum disimpan!</p>
+        `,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#198754', // Warna Hijau
+        cancelButtonColor: '#d33',     // Warna Merah
+        confirmButtonText: '<i class="fas fa-check-circle"></i> Ya, Data Benar',
+        cancelButtonText: 'Batal / Perbaiki',
+        reverseButtons: true
+    }).then((result) => {
+        // JIKA PETUGAS KLIK "YA, DATA BENAR"
+        if (result.isConfirmed) {
+             eksekusiPenyimpananFirebase(selectedBulan);
+        }
+    });
+}
+
+// FUNGSI INTI UNTUK PENGIRIMAN DATA (DIPANGGIL SETELAH KONFIRMASI)
+function eksekusiPenyimpananFirebase(selectedBulan) {
     let tglFix = new Date().toISOString().split('T')[0]; 
     if($('#chkTglManual').is(':checked')) { 
         let manual = $('#inpTglManual').val(); 
@@ -6254,14 +6480,9 @@ function prosesSimpanTabungan() {
     let btn = $('#btnSimpanInput');
     btn.html('<i class="fas fa-spinner fa-spin"></i> Menyimpan...').prop('disabled', true); 
 
-    // OBJEK UNTUK UPDATE MASSAL (SANGAT EFISIEN)
     let updates = {};
-    
     selectedBulan.forEach(bln => {
-        // ID UNIK SEPERTI GAMBAR 1
         let idUnik = "TB" + Date.now() + Math.floor(Math.random() * 1000);
-        
-        // FORMAT ARRAY: [0:ID, 1:NISN, 2:TP_ID, 3:Bulan, 4:Nominal, 5:Tanggal, 6:Petugas, 7:Status]
         let dataBaru = [
             idUnik,
             tempNISN.toString(),
@@ -6272,32 +6493,24 @@ function prosesSimpanTabungan() {
             currentUser.nama,
             "Valid"
         ];
-
         updates['Database_SIPITUNG/Tabungan/' + idUnik] = dataBaru;
     });
 
-    // EKSEKUSI PENYIMPANAN
     db.ref().update(updates)
     .then(() => {
-        // BERHASIL
         bersihkanCache(); 
         notifikasiAman("Data Pembayaran Berhasil Disimpan!"); 
         
-        // Tutup Modal
         try { 
             let modalEl = document.getElementById('modalInputTabungan');
             bootstrap.Modal.getInstance(modalEl).hide(); 
         } catch(e){}
         
-        // Refresh Tampilan
         loadInputTabunganPage(); 
         loadDashboardPage();
-        
-        // Kembalikan Tombol
         btn.html('<i class="fas fa-save"></i> Simpan Pembayaran').prop('disabled', false); 
     })
     .catch(e => {
-        // GAGAL
         btn.html('<i class="fas fa-save"></i> Simpan Pembayaran').prop('disabled', false);
         console.error("Firebase Simpan Error:", e);
         Swal.fire("Terjadi Kesalahan", "Gagal menyimpan data ke Firebase: " + e.message, "error");
@@ -8123,7 +8336,7 @@ function paksaRefreshTabel() {
     loadDashboardPage();     
 }
 
-    // ==========================================
+  // ==========================================
 // 31. BATAL LULUS (MESIN WAKTU) & RIWAYAT
 // ==========================================
 
@@ -8161,7 +8374,7 @@ window.prosesBatalLulusMasal = function() {
     
     Swal.fire({
         title: 'Yakin Pulihkan ' + nisnTerpilih.length + ' Siswa?',
-        text: "Siswa beserta tabungan, setoran, pengeluaran & potongan akan kembali ke daftar aktif.",
+        text: "Siswa beserta tabungan, setoran, pengeluaran, potongan, dan status kembali akan kembali aktif.",
         icon: 'warning',
         showCancelButton: true,
         confirmButtonColor: '#198754',
@@ -8181,19 +8394,21 @@ $(document).on('change', '#checkAllLulusan', function() {
 });
 
 // ========================================================
-// 4. MESIN INTI PEMINDAH DATA (V4.9 UNDO LENGKAP)
+// 4. MESIN INTI PEMINDAH DATA (FIX SUPER: TARIK ARSIP)
 // ========================================================
 function eksekusiPulihkanData(arrNisn) {
-    Swal.fire({title: 'Memproses Mesin Waktu...', text: 'Mengembalikan data siswa, tabungan, setoran, kas, potongan, dan pengecualian...', allowOutsideClick: false, didOpen: () => Swal.showLoading()});
+    Swal.fire({title: 'Memproses Mesin Waktu...', text: 'Mengembalikan data siswa, tabungan, setoran, kas, potongan, pengecualian, dan status...', allowOutsideClick: false, didOpen: () => Swal.showLoading()});
 
-    // V4.9: Tarik semua gudang Riwayat yang baru ditambahkan
+    // V4.9 FIX: Tambah Gerbong ArsipPengaturanLulusan untuk ID Akurat
     Promise.all([
         db.ref('Database_SIPITUNG/RiwayatLulusan').once('value'),
         db.ref('Database_SIPITUNG/RiwayatTabungan').once('value'),
         db.ref('Database_SIPITUNG/RiwayatSetoran').once('value'),
         db.ref('Database_SIPITUNG/RiwayatPengeluaran').once('value'),
         db.ref('Database_SIPITUNG/RiwayatPotonganLulusan').once('value'),
-        db.ref('Database_SIPITUNG/RiwayatPengecualian_SIPITUNG').once('value')
+        db.ref('Database_SIPITUNG/RiwayatPengecualian_SIPITUNG').once('value'),
+        db.ref('Database_SIPITUNG/RiwayatStatusKembali').once('value'), 
+        db.ref('Database_SIPITUNG/ArsipPengaturanLulusan').once('value') // <--- GERBONG KUNCI
     ]).then(snapshots => {
         let allLulusan = snapshots[0].val() || {};
         let allRT = snapshots[1].val() || {};
@@ -8201,13 +8416,15 @@ function eksekusiPulihkanData(arrNisn) {
         let allRPengeluaran = snapshots[3].val() || {};
         let allRPotongan = snapshots[4].val() || {};
         let allRPengecualian = snapshots[5].val() || {};
+        let allRStatusKembali = snapshots[6].val() || {}; 
+        let allArsip = snapshots[7].val() || {}; 
         
         let updates = {};
         let targetJejak = new Set(); 
-        let restoredTps = new Set(); // Pelacak TP khusus untuk Pengeluaran & Potongan
+        let restoredTps = new Set(); 
         let jumlahSetoranPindah = 0;
 
-        // 1. Proses Pindah Data Siswa & Pengecualian
+        // 1. Proses Pindah Data Siswa & Kumpulkan ID Masa Bakti
         arrNisn.forEach(nisn => {
             let dSiswa = allLulusan[nisn];
             if(dSiswa) {
@@ -8215,15 +8432,23 @@ function eksekusiPulihkanData(arrNisn) {
                 updates['Database_SIPITUNG/RiwayatLulusan/' + nisn] = null;
                 updates['Database_SIPITUNG/ArsipPengaturanLulusan/' + nisn] = null; 
 
-                // Kumpulkan ID TP yang terkait dengan siswa yang dipulihkan
                 if (dSiswa[8]) restoredTps.add(dSiswa[8].toString().trim());
                 if (dSiswa[9]) restoredTps.add(dSiswa[9].toString().trim());
                 if (dSiswa[10]) restoredTps.add(dSiswa[10].toString().trim());
 
-                // Pulihkan Pengecualian Potongan Siswa Ini
+                // JURUS PAMUNGKAS: Ambil TPLulusanID asli dari brankas arsip
+                if (allArsip[nisn] && allArsip[nisn].TPLulusanID) {
+                    restoredTps.add(allArsip[nisn].TPLulusanID.toString().trim());
+                }
+
                 if(allRPengecualian[nisn]) {
                     updates['Database_SIPITUNG/Pengaturan/Pengecualian_SIPITUNG/' + nisn] = allRPengecualian[nisn];
                     updates['Database_SIPITUNG/RiwayatPengecualian_SIPITUNG/' + nisn] = null;
+                }
+
+                if(allRStatusKembali[nisn]) {
+                    updates['Database_SIPITUNG/StatusKembali/' + nisn] = allRStatusKembali[nisn];
+                    updates['Database_SIPITUNG/RiwayatStatusKembali/' + nisn] = null;
                 }
             }
         });
@@ -8258,28 +8483,51 @@ function eksekusiPulihkanData(arrNisn) {
             }
         }
 
-        // 4. V4.9: Pulihkan Pengeluaran Sekolah yang terkait dengan TP
+        // 4. Proses Pulihkan Pengeluaran
         for (let idK in allRPengeluaran) {
             let pData = allRPengeluaran[idK];
-            let tpStr = pData[6] || '';
-            let arrTp = tpStr.split(',');
+            if (pData) {
+                let realIdK = pData[0] || pData['0'] || idK;
+                let tpStr = (pData[6] || pData['6'] || '').toString();
+                let arrTp = tpStr.split(',');
 
-            // Jika Pengeluaran ini memiliki minimal 1 TP yang sedang dipulihkan
-            let isMatch = arrTp.some(id => restoredTps.has(id));
-            if(isMatch) {
-                updates['Database_SIPITUNG/PengeluaranSekolah/' + idK] = pData;
-                updates['Database_SIPITUNG/RiwayatPengeluaran/' + idK] = null;
+                let isMatch = false;
+                restoredTps.forEach(idTp => {
+                    if(idTp && idTp !== "" && arrTp.includes(idTp)) isMatch = true;
+                });
+
+                if(isMatch) {
+                    updates['Database_SIPITUNG/PengeluaranSekolah/' + realIdK] = pData;
+                    updates['Database_SIPITUNG/RiwayatPengeluaran/' + idK] = null;
+                }
             }
         }
 
-        // 5. V4.9: Pulihkan Potongan Lulusan
-        for (let idP in allRPotongan) {
-            let potData = allRPotongan[idP];
-            let tpPot = potData[4]; // Baca TP dari index 4 yang disuntik saat lulus
-            if(restoredTps.has(tpPot)) {
-                updates['Database_SIPITUNG/PotonganLulusan/' + idP] = potData;
-                updates['Database_SIPITUNG/RiwayatPotonganLulusan/' + idP] = null;
-            }
+        // ========================================================
+        // 5. FIX SUPER: Pulihkan Potongan (Pendeteksi TPLulusanID)
+        // ========================================================
+        if (allRPotongan) {
+            Object.keys(allRPotongan).forEach(idP => {
+                let potData = allRPotongan[idP];
+                if (potData) {
+                    // Gunakan ID asli dari dalam array agar tidak salah kamar di Firebase
+                    let realIdP = potData[0] || potData['0'] || idP;
+                    let targetPot = (potData[4] || potData['4'] || '').toString().trim(); 
+                    
+                    let isMatch = false;
+                    restoredTps.forEach(idTp => {
+                        // Jika string Masa Bakti yang panjang itu MENGANDUNG TPLulusanID siswa
+                        if (idTp && idTp !== "" && targetPot.includes(idTp)) {
+                            isMatch = true;
+                        }
+                    });
+                    
+                    if (isMatch) {
+                        updates['Database_SIPITUNG/PotonganLulusan/' + realIdP] = potData;
+                        updates['Database_SIPITUNG/RiwayatPotonganLulusan/' + idP] = null;
+                    }
+                }
+            });
         }
 
         db.ref().update(updates).then(() => {
@@ -8287,7 +8535,7 @@ function eksekusiPulihkanData(arrNisn) {
             
             Swal.fire({
                 title: 'Sempurna!', 
-                html: `${arrNisn.length} Siswa beserta Kas, Potongan, dan <b>${jumlahSetoranPindah}</b> Riwayat Setoran berhasil dipulihkan ke daftar aktif!`, 
+                html: `${arrNisn.length} Siswa beserta Kas, Potongan, <b>Status Kembali</b>, dan <b>${jumlahSetoranPindah}</b> Riwayat Setoran berhasil dipulihkan ke daftar aktif!`, 
                 icon: 'success'
             });
             
@@ -8790,25 +9038,57 @@ window.batalkanPengembalianSiswa = function(nisn, nama) {
 }
 
 window.cetakKwitansiIndividu = function(nisn, nama, sisa) {
-    let tgl = new Date().toLocaleDateString('id-ID');
-    let isiKwitansi = `
-        <html><head><title>Kwitansi ${nama}</title>
-        <style>body{font-family:Arial, sans-serif; padding:20px;} .box{border:2px dashed #000; padding:20px; width:450px; border-radius:10px;}</style>
-        </head><body>
-        <div class="box">
-            <h3 style="text-align:center; margin-top:0; color:#198754;">BUKTI PENGEMBALIAN TABUNGAN</h3><hr>
-            <p><b>Tanggal:</b> ${tgl}</p>
-            <p><b>NISN:</b> ${nisn}</p>
-            <p><b>Nama Siswa:</b> ${nama}</p>
-            <p><b>Nominal Sisa:</b> <span style="font-size:18px; font-weight:bold;">Rp ${sisa.toLocaleString('id-ID')}</span></p><hr>
-            <p style="text-align:right;"><br>Yang Menerima,<br><br><br><b>(${nama})</b></p>
-        </div>
-        <scr` + `ipt>window.print();</scr` + `ipt>
-        </body></html>
-    `;
-    let win = window.open('', '', 'width=600,height=500');
-    win.document.write(isiKwitansi);
-    win.document.close();
+    // Ambil tanggal hari ini sebagai default kalender (Format: YYYY-MM-DD)
+    let hariIni = new Date();
+    let yyyy = hariIni.getFullYear();
+    let mm = String(hariIni.getMonth() + 1).padStart(2, '0');
+    let dd = String(hariIni.getDate()).padStart(2, '0');
+    let defaultDate = `${yyyy}-${mm}-${dd}`;
+
+    Swal.fire({
+        title: 'Atur Tanggal Kwitansi',
+        html: `
+            <div class="mb-2 text-start text-muted small">Pilih tanggal yang akan tertera di bukti cetak:</div>
+            <input type="date" id="tglKwitansi" class="form-control border-success text-center fw-bold" value="${defaultDate}">
+        `,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: '<i class="fas fa-print"></i> Cetak Kwitansi',
+        cancelButtonText: 'Batal',
+        confirmButtonColor: '#198754',
+        preConfirm: () => {
+            let tglInput = document.getElementById('tglKwitansi').value;
+            if (!tglInput) {
+                Swal.showValidationMessage('Tanggal tidak boleh kosong!');
+            }
+            return tglInput;
+        }
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // Ubah format tanggal inputan (YYYY-MM-DD) jadi gaya Indonesia (DD/MM/YYYY)
+            let d = new Date(result.value);
+            let tglFormat = d.toLocaleDateString('id-ID', {day: '2-digit', month: 'long', year: 'numeric'});
+
+            let isiKwitansi = `
+                <html><head><title>Kwitansi ${nama}</title>
+                <style>body{font-family:Arial, sans-serif; padding:20px;} .box{border:2px dashed #000; padding:20px; width:450px; border-radius:10px;}</style>
+                </head><body>
+                <div class="box">
+                    <h3 style="text-align:center; margin-top:0; color:#198754;">BUKTI PENGEMBALIAN TABUNGAN</h3><hr>
+                    <p><b>Tanggal:</b> ${tglFormat}</p>
+                    <p><b>NISN:</b> ${nisn}</p>
+                    <p><b>Nama Siswa:</b> ${nama}</p>
+                    <p><b>Nominal Sisa:</b> <span style="font-size:18px; font-weight:bold;">Rp ${sisa.toLocaleString('id-ID')}</span></p><hr>
+                    <p style="text-align:right;"><br>Yang Menerima,<br><br><br><b>(${nama})</b></p>
+                </div>
+                <scr` + `ipt>window.print();</scr` + `ipt>
+                </body></html>
+            `;
+            let win = window.open('', '', 'width=600,height=500');
+            win.document.write(isiKwitansi);
+            win.document.close();
+        }
+    });
 }
 
 window.pilihSemuaSiswa = function(checkboxUtama) {
@@ -9497,7 +9777,7 @@ window.cetakKartuMassal = function() {
 }
 
 // ====================================================
-// 41. FITUR PEMBERSIHAN DATA (VERSI FINAL - FIX SETORAN AKTIF)
+// 41. FITUR PEMBERSIHAN DATA (VERSI SUPER RADAR - FIX ALL)
 // ====================================================
 
 window.bukaModalPembersihan = function() {
@@ -9546,7 +9826,7 @@ window.bukaModalPembersihan = function() {
                             </select>
                         </div>
                         <div class="alert alert-danger py-2 mb-3" style="font-size:0.75rem;">
-                            <i class="fas fa-exclamation-circle"></i> <b>TOTAL CLEAN:</b> Profil Siswa, Akun, Tabungan, dan Log Setoran akan dihapus.
+                            <i class="fas fa-exclamation-circle"></i> <b>TOTAL CLEAN:</b> Data di Siswa, Tabungan, Setoran, Pengecualian, Status Kembali, dll dalam 3 Masa Bakti akan dihapus.
                         </div>
                         <button class="btn btn-danger w-100 fw-bold mt-2 shadow" onclick="Swal.clickConfirm()">
                             <i class="fas fa-trash-alt me-2"></i>HAPUS TOTAL SISWA AKTIF
@@ -9565,7 +9845,7 @@ window.bukaModalPembersihan = function() {
                             </select>
                         </div>
                         <div class="alert alert-danger py-2 mb-3" style="font-size:0.75rem;">
-                            <i class="fas fa-history"></i> <b>PERINGATAN:</b> Profil Lulusan & User akan dihapus. Log transaksi 3 tahun ke belakang akan dilacak dan dihapus.
+                            <i class="fas fa-history"></i> <b>PERINGATAN:</b> Profil Lulusan & Log transaksi di 8 folder Riwayat dalam kurun 3 tahun ke belakang akan disapu bersih.
                         </div>
                         <button class="btn btn-secondary w-100 fw-bold shadow" onclick="eksekusiHapusRiwayatLulusan()">
                             <i class="fas fa-user-slash me-2"></i>HAPUS TOTAL LULUSAN
@@ -9616,34 +9896,64 @@ window.bukaModalPembersihan = function() {
 }
 
 // ==========================================
-// 1. EKSEKUSI PEMBERSIHAN TOTAL SISWA AKTIF
+// 1. EKSEKUSI PEMBERSIHAN TOTAL SISWA AKTIF (3 MASA BAKTI)
 // ==========================================
 window.eksekusiHapusSiswaAktifTotal = function(d) {
-    confirmTotalHapus(`HAPUS SISWA AKTIF & KEUANGAN<br>TP: ${d.tp}<br>Petugas: ${d.petugas}<br>Kelas: ${d.kelas}`, () => {
+    confirmTotalHapus(`HAPUS SISWA AKTIF & KEUANGAN (3 MASA BAKTI)<br>TP Akhir: ${d.tp}<br>Petugas: ${d.petugas}<br>Kelas: ${d.kelas}`, () => {
         Swal.fire({ title: 'Menyapu Data...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
         
         Promise.all([
             db.ref('Database_SIPITUNG/Siswa').once('value'),
+            db.ref('Database_SIPITUNG/Pengecualian_SIPITUNG').once('value'),
             db.ref('Database_SIPITUNG/Tabungan').once('value'),
-            db.ref('Database_SIPITUNG/Setoran').once('value')
+            db.ref('Database_SIPITUNG/PengeluaranSekolah').once('value'),
+            db.ref('Database_SIPITUNG/PotonganLulusan').once('value'),
+            db.ref('Database_SIPITUNG/Setoran').once('value'),
+            db.ref('Database_SIPITUNG/StatusKembali').once('value') 
         ]).then(snaps => {
-            let dataSiswa = snaps[0].val() || {};
-            let dataTabungan = snaps[1].val() || {};
-            let dataSetoran = snaps[2].val() || {};
+            let dSiswa = snaps[0].val() || {};
+            let dKecuali = snaps[1].val() || {};
+            let dTabungan = snaps[2].val() || {};
+            let dPengeluaran = snaps[3].val() || {};
+            let dPotongan = snaps[4].val() || {};
+            let dSetoran = snaps[5].val() || {};
+            let dStatus = snaps[6].val() || {}; 
+
             let updates = {}, cSiswa = 0, cKeuangan = 0;
 
-            let tpBersih = d.tp.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
             let targetPetugas = d.petugas.toUpperCase().trim();
+            let petStrip = targetPetugas.replace(/[^A-Z0-9]/g, '');
+            let petStripShort = petStrip.substring(0, 10); 
+            
             let targetKelas = d.kelas.toUpperCase().trim();
             let nisnYangDihapus = new Set();
 
-            // A. Hapus Profil & Akun Siswa (Kumpulkan NISN)
-            for (let nisn in dataSiswa) {
-                let s = dataSiswa[nisn];
+            // MESIN WAKTU 3 TAHUN PELAJARAN
+            let listTahunTerkait = []; 
+            let angkaTahun = d.tp.match(/\d{4}/g); 
+            if (angkaTahun && angkaTahun.length === 2) {
+                let thn1 = parseInt(angkaTahun[0]);
+                let thn2 = parseInt(angkaTahun[1]);
+                for(let i=0; i<3; i++) {
+                    listTahunTerkait.push(`${thn1-i}/${thn2-i}`);
+                    listTahunTerkait.push(`${thn1-i}${thn2-i}`);
+                }
+            } else {
+                listTahunTerkait.push(d.tp);
+                listTahunTerkait.push(d.tp.replace(/[^a-zA-Z0-9]/g, ''));
+            }
+
+            // A. FIX SUPER: KUMPULKAN SISWA DENGAN FILTER TAHUN PELAJARAN
+            for (let nisn in dSiswa) {
+                let s = dSiswa[nisn];
                 let mPet = (d.petugas === "SEMUA_PETUGAS") ? true : (s[7]||'').toString().toUpperCase().trim() === targetPetugas;
                 let mKls = (d.kelas === "SEMUA_KELAS") ? true : (s[4]==d.kelas || s[5]==d.kelas || s[6]==d.kelas);
                 
-                if (mPet && mKls) {
+                // CEK MASA BAKTI: Gabungkan ID TP milik siswa, lalu cocokkan dengan 3 Tahun target
+                let sTpStr = `${s[8] || ''} ${s[9] || ''} ${s[10] || ''}`;
+                let mTP_Siswa = listTahunTerkait.some(t => sTpStr.includes(t));
+                
+                if (mPet && mKls && mTP_Siswa) {
                     nisnYangDihapus.add(nisn.toString());
                     updates[`Database_SIPITUNG/Siswa/${nisn}`] = null;
                     updates[`Database_SIPITUNG/Users/${nisn}`] = null;
@@ -9651,39 +9961,43 @@ window.eksekusiHapusSiswaAktifTotal = function(d) {
                 }
             }
 
-            // B. Hapus Tabungan Siswa Aktif (Lacak dengan Radar NISN, karena ini buku tabungan individual)
-            for (let idTrans in dataTabungan) {
-                let tb = dataTabungan[idTrans];
-                if (!tb) continue;
-                
-                let isMilikSiswa = Object.values(tb).some(val => val && nisnYangDihapus.has(val.toString()));
-                if (isMilikSiswa) {
-                    updates[`Database_SIPITUNG/Tabungan/${idTrans}`] = null;
-                    cKeuangan++;
+            // FUNGSI SAPU BERSIH MULTI-FOLDER
+            const sapuFolderAktif = (dataNode, folderName, isPengeluaran = false) => {
+                for (let key in dataNode) {
+                    let row = dataNode[key];
+                    if (!row) continue;
+                    let strRow = JSON.stringify(row).toUpperCase();
+                    
+                    let isKeyNISN = nisnYangDihapus.has(key.toString());
+                    let isMilikSiswa = isKeyNISN;
+                    if (!isMilikSiswa && typeof row === 'object') {
+                        isMilikSiswa = Object.values(row).some(val => val && nisnYangDihapus.has(val.toString()));
+                    }
+
+                    let mPet = (d.petugas === "SEMUA_PETUGAS") ? true : 
+                               (strRow.includes(targetPetugas) || strRow.includes(petStrip) || strRow.includes(petStripShort));
+                    
+                    let mTP = listTahunTerkait.some(t => strRow.includes(t));
+
+                    if (isMilikSiswa || (mPet && mTP)) {
+                        if (isPengeluaran) {
+                            if (strRow.includes("KAS MASUK (LAIN-LAIN)") || strRow.includes("PENGGUNAAN PEMASUKAN LAIN")) {
+                                continue; 
+                            }
+                        }
+                        updates[`Database_SIPITUNG/${folderName}/${key}`] = null;
+                        cKeuangan++;
+                    }
                 }
-            }
+            };
 
-            // C. Hapus Setoran Siswa Aktif (Rekap Petugas - Sesuai Screenshot Terbaru)
-            for (let idLog in dataSetoran) {
-                let st = dataSetoran[idLog];
-                if (!st) continue;
-
-                // Tarik Index Sesuai Database
-                let stPetugas = (st[1] || "").toString().toUpperCase().trim();
-                let stKodeTP = (st[2] || "").toString().toUpperCase(); // Contoh: TP-20232024-KLS7...
-                let stKelas = (st[3] || "").toString().toUpperCase().trim(); // Contoh: 7
-
-                // Cocokkan dengan pilihan Dropdown
-                let mPet = (d.petugas === "SEMUA_PETUGAS") ? true : (stPetugas === targetPetugas);
-                let mKls = (d.kelas === "SEMUA_KELAS") ? true : (stKelas === targetKelas);
-                let mTP = stKodeTP.includes(tpBersih); 
-
-                // Jika Tahun, Petugas, dan Kelas cocok -> HAPUS LOG REKAPNYA!
-                if (mPet && mKls && mTP) {
-                    updates[`Database_SIPITUNG/Setoran/${idLog}`] = null;
-                    cKeuangan++;
-                }
-            }
+            // B. EKSEKUSI SAPU SEMUA FOLDER AKTIF
+            sapuFolderAktif(dKecuali, 'Pengecualian_SIPITUNG');
+            sapuFolderAktif(dTabungan, 'Tabungan');
+            sapuFolderAktif(dPengeluaran, 'PengeluaranSekolah', true); 
+            sapuFolderAktif(dPotongan, 'PotonganLulusan');
+            sapuFolderAktif(dSetoran, 'Setoran');
+            sapuFolderAktif(dStatus, 'StatusKembali'); 
 
             finalisasiPembersihan(updates, cSiswa, cKeuangan);
         });
@@ -9691,38 +10005,71 @@ window.eksekusiHapusSiswaAktifTotal = function(d) {
 }
 
 // ==========================================
-// 2. EKSEKUSI PEMBERSIHAN TOTAL RIWAYAT LULUSAN (YANG SUDAH BERHASIL)
+// 2. EKSEKUSI PEMBERSIHAN TOTAL RIWAYAT LULUSAN (3 MASA BAKTI)
 // ==========================================
 window.eksekusiHapusRiwayatLulusan = function() {
     let tp = $('#selDelLulusTP').val();
     let petugas = $('#selDelLulusPetugas').val();
     if(!tp || !petugas) return Swal.fire("Peringatan", "Pilih Tahun & Petugas!", "warning");
 
-    confirmTotalHapus(`HAPUS RIWAYAT LULUSAN & KEUANGAN<br>TP Lulus: ${tp}<br>Petugas: ${petugas}`, () => {
+    confirmTotalHapus(`HAPUS RIWAYAT LULUSAN & KEUANGAN (3 MASA BAKTI)<br>TP Lulus: ${tp}<br>Petugas: ${petugas}`, () => {
         Swal.fire({ title: 'Melacak & Menyapu Data...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
 
         Promise.all([
             db.ref('Database_SIPITUNG/RiwayatLulusan').once('value'),
+            db.ref('Database_SIPITUNG/RiwayatPengecualian_SIPITUNG').once('value'),
             db.ref('Database_SIPITUNG/RiwayatTabungan').once('value'),
-            db.ref('Database_SIPITUNG/RiwayatSetoran').once('value')
+            db.ref('Database_SIPITUNG/RiwayatPengeluaran').once('value'),
+            db.ref('Database_SIPITUNG/RiwayatPotonganLulusan').once('value'),
+            db.ref('Database_SIPITUNG/RiwayatSetoran').once('value'),
+            db.ref('Database_SIPITUNG/RiwayatStatusKembali').once('value'), 
+            db.ref('Database_SIPITUNG/ArsipPengaturanLulusan').once('value')
         ]).then(snaps => {
-            let dataLulus = snaps[0].val() || {};
-            let dataRiwayatTabungan = snaps[1].val() || {};
-            let dataRiwayatSetoran = snaps[2].val() || {};
-            let updates = {}, cLulus = 0, cKeuangan = 0;
+            let dLulus = snaps[0].val() || {};
+            let dKecuali = snaps[1].val() || {};
+            let dTabungan = snaps[2].val() || {};
+            let dPengeluaran = snaps[3].val() || {};
+            let dPotongan = snaps[4].val() || {};
+            let dSetoran = snaps[5].val() || {};
+            let dStatus = snaps[6].val() || {};
+            let dArsip = snaps[7].val() || {};
 
+            let updates = {}, cLulus = 0, cKeuangan = 0;
             let targetPetugas = petugas.toUpperCase().trim();
+            
+            let petStrip = targetPetugas.replace(/[^A-Z0-9]/g, '');
+            let petStripShort = petStrip.substring(0, 10);
+
             let nisnYangDihapus = new Set();
 
-            // 1. HAPUS PROFIL LULUSAN & AKUN (Berhasil)
-            for (let nisn in dataLulus) {
-                let s = dataLulus[nisn];
+            let listTahunTerkait = []; 
+            let angkaTahun = tp.match(/\d{4}/g); 
+            if (angkaTahun && angkaTahun.length === 2) {
+                let thn1 = parseInt(angkaTahun[0]);
+                let thn2 = parseInt(angkaTahun[1]);
+                for(let i=0; i<3; i++) {
+                    listTahunTerkait.push(`${thn1-i}/${thn2-i}`);
+                    listTahunTerkait.push(`${thn1-i}${thn2-i}`);
+                }
+            } else {
+                listTahunTerkait.push(tp);
+                listTahunTerkait.push(tp.replace(/[^a-zA-Z0-9]/g, ''));
+            }
+
+            // 1. FIX SUPER: HAPUS PROFIL LULUSAN DENGAN FILTER TAHUN PELAJARAN
+            for (let nisn in dLulus) {
+                let s = dLulus[nisn];
                 if (!s) continue;
                 
                 let petData = (s[7] || "").toString().toUpperCase().trim();
                 let mPet = (petugas === "SEMUA_PETUGAS") ? true : (petData === targetPetugas);
                 
-                if (mPet) {
+                // CEK MASA BAKTI LULUSAN (Termasuk dari Brankas Arsip)
+                let sTpStr = `${s[8] || ''} ${s[9] || ''} ${s[10] || ''}`;
+                if (dArsip[nisn] && dArsip[nisn].TPLulusanID) sTpStr += ` ${dArsip[nisn].TPLulusanID}`;
+                let mTP_Siswa = listTahunTerkait.some(t => sTpStr.includes(t));
+                
+                if (mPet && mTP_Siswa) {
                     nisnYangDihapus.add(nisn.toString());
                     updates[`Database_SIPITUNG/RiwayatLulusan/${nisn}`] = null; 
                     updates[`Database_SIPITUNG/Users/${nisn}`] = null;          
@@ -9730,54 +10077,39 @@ window.eksekusiHapusRiwayatLulusan = function() {
                 }
             }
 
-            // 2. LOGIKA MESIN WAKTU (Berhasil)
-            let listTahunTerkait = [tp, tp.replace(/[^a-zA-Z0-9]/g, '')]; 
-            let angkaTahun = tp.match(/\d{4}/g); 
-            
-            if (angkaTahun && angkaTahun.length === 2) {
-                let thn1 = parseInt(angkaTahun[0]);
-                let thn2 = parseInt(angkaTahun[1]);
-                listTahunTerkait.push(`${thn1-1}/${thn2-1}`);
-                listTahunTerkait.push(`${thn1-1}${thn2-1}`);
-                listTahunTerkait.push(`${thn1-2}/${thn2-2}`);
-                listTahunTerkait.push(`${thn1-2}${thn2-2}`);
-            }
+            // FUNGSI SAPU BERSIH MULTI-FOLDER RIWAYAT
+            const sapuFolderRiwayat = (dataNode, folderName) => {
+                for (let key in dataNode) {
+                    let row = dataNode[key];
+                    if (!row) continue;
+                    let strRow = JSON.stringify(row).toUpperCase();
+                    
+                    let isKeyNISN = nisnYangDihapus.has(key.toString());
+                    let isMilikSiswa = isKeyNISN;
+                    if (!isMilikSiswa && typeof row === 'object') {
+                        isMilikSiswa = Object.values(row).some(val => val && nisnYangDihapus.has(val.toString()));
+                    }
 
-            // 3. HAPUS RIWAYAT TABUNGAN
-            for (let idTrans in dataRiwayatTabungan) {
-                let tb = dataRiwayatTabungan[idTrans];
-                if (!tb) continue;
+                    let mPet = (petugas === "SEMUA_PETUGAS") ? true : 
+                               (strRow.includes(targetPetugas) || strRow.includes(petStrip) || strRow.includes(petStripShort));
+                    
+                    let mTP = listTahunTerkait.some(t => strRow.includes(t));
 
-                let tbPetugas = (tb[6] || "").toString().toUpperCase().trim();
-                let strTB = JSON.stringify(tb).toUpperCase();
-
-                let mPet = (petugas === "SEMUA_PETUGAS") ? true : (tbPetugas === targetPetugas || strTB.includes(targetPetugas));
-                let mTP = listTahunTerkait.some(t_p => strTB.includes(t_p)); 
-                let isMilikSiswa = Object.values(tb).some(val => val && nisnYangDihapus.has(val.toString()));
-
-                if (isMilikSiswa || (mPet && mTP)) {
-                    updates[`Database_SIPITUNG/RiwayatTabungan/${idTrans}`] = null;
-                    cKeuangan++;
+                    if (isMilikSiswa || (mPet && mTP)) {
+                        updates[`Database_SIPITUNG/${folderName}/${key}`] = null;
+                        cKeuangan++;
+                    }
                 }
-            }
+            };
 
-            // 4. HAPUS RIWAYAT SETORAN
-            for (let idLog in dataRiwayatSetoran) {
-                let st = dataRiwayatSetoran[idLog];
-                if (!st) continue;
-
-                let stPetugas = (st[1] || "").toString().toUpperCase().trim();
-                let strST = JSON.stringify(st).toUpperCase();
-
-                let mPet = (petugas === "SEMUA_PETUGAS") ? true : (stPetugas === targetPetugas || strST.includes(targetPetugas));
-                let mTP = listTahunTerkait.some(t_p => strST.includes(t_p));
-                let isMilikSiswa = Object.values(st).some(val => val && nisnYangDihapus.has(val.toString()));
-
-                if (isMilikSiswa || (mPet && mTP)) {
-                    updates[`Database_SIPITUNG/RiwayatSetoran/${idLog}`] = null;
-                    cKeuangan++;
-                }
-            }
+            // 2. EKSEKUSI SAPU SEMUA FOLDER RIWAYAT
+            sapuFolderRiwayat(dKecuali, 'RiwayatPengecualian_SIPITUNG');
+            sapuFolderRiwayat(dTabungan, 'RiwayatTabungan');
+            sapuFolderRiwayat(dPengeluaran, 'RiwayatPengeluaran');
+            sapuFolderRiwayat(dPotongan, 'RiwayatPotonganLulusan'); 
+            sapuFolderRiwayat(dSetoran, 'RiwayatSetoran');
+            sapuFolderRiwayat(dStatus, 'RiwayatStatusKembali'); 
+            sapuFolderRiwayat(dArsip, 'ArsipPengaturanLulusan');
 
             finalisasiPembersihan(updates, cLulus, cKeuangan);
         });
@@ -9788,7 +10120,7 @@ window.eksekusiHapusRiwayatLulusan = function() {
 function confirmTotalHapus(msg, onConfirm) {
     Swal.fire({
         title: 'KONFIRMASI TOTAL CLEAN',
-        html: `${msg}<br><br><span class="text-danger fw-bold">PERINGATAN: DATA SISWA, AKUN, TABUNGAN, DAN REKAP SETORAN AKAN LENYAP.<br><br>Ketik HAPUS untuk konfirmasi:</span>`,
+        html: `${msg}<br><br><span class="text-danger fw-bold">PERINGATAN: SELURUH DATA DALAM 3 MASA BAKTI AKAN LENYAP.<br><br>Ketik HAPUS untuk konfirmasi:</span>`,
         input: 'text',
         showCancelButton: true,
         confirmButtonColor: '#d33',
@@ -9800,13 +10132,25 @@ function finalisasiPembersihan(updates, cSiswa, cKeuangan) {
     if (Object.keys(updates).length > 0) {
         db.ref().update(updates).then(() => {
             if(typeof bersihkanCache === 'function') bersihkanCache();
-            Swal.fire("Berhasil Bersih!", `${cSiswa} Profil/User & ${cKeuangan} Data Keuangan dihapus.`, "success").then(() => location.reload());
+            Swal.fire({
+                title: "Berhasil Bersih!", 
+                text: `${cSiswa} Profil/User & ${cKeuangan} Data Terkait dihapus.`, 
+                icon: "success"
+            }).then(() => {
+                // FIX: Gunakan Soft Refresh (Tanpa location.reload) agar sesi login tidak tertutup
+                if(typeof renderKeuanganPages === 'function') renderKeuanganPages();
+                if(typeof loadDataSiswaPage === 'function') loadDataSiswaPage();
+                if(typeof loadRiwayatLulusanPage === 'function') loadRiwayatLulusanPage();
+                
+                // Trigger klik tab yang sedang aktif untuk memuat ulang tabel
+                let activeTab = $('.nav-link.active').attr('id');
+                if(activeTab) $('#' + activeTab).trigger('click');
+            });
         });
     } else {
         Swal.fire("Selesai", "Tidak ada data yang cocok untuk dibersihkan.", "info");
     }
 }
-
 
 window.filterKelasTabel = function(selectBox, tableId, columnIndex = 5) {
     let val = selectBox.value; 
@@ -9966,7 +10310,6 @@ window.filterKelasTabel = function(selectBox, tableId, columnIndex = 5) {
 // 1. FUNGSI LOADER QR CODE & PEMBUKA MENU CETAK KARTU MANUAL
 // ========================================================
 
-// Fungsi ajaib untuk memuat mesin QR Code secara dinamis
 window.loadQRCodeLibrary = function() {
     return new Promise((resolve) => {
         if (typeof QRCode !== 'undefined') return resolve();
@@ -9977,7 +10320,6 @@ window.loadQRCodeLibrary = function() {
     });
 }
 
-// Fungsi untuk menyulap teks menjadi gambar Base64 QR Code
 window.generateQRBase64 = function(text) {
     return new Promise((resolve) => {
         let div = document.createElement('div');
@@ -9991,29 +10333,26 @@ window.generateQRBase64 = function(text) {
 }
 
 // ========================================================
-// 1. FUNGSI PEMBUKA MENU CETAK (ANTI-GAGAL: SEDOT DATA FRESH)
+// 1. FUNGSI PEMBUKA MENU CETAK (NOMINAL KOSONG & FORMAT RUPIAH)
 // ========================================================
 window.bukaMenuCetakKartuManual = async function() {
-    // A. DETEKSI NAMA TP DAN URUTAN TAB (Index 0, 1, atau 2)
     let tabAktif = $('#tabSiswa .nav-link.active');
     let teksTabFull = tabAktif.text().trim(); 
-    let tpTerdeteksi = teksTabFull.split(' ')[0] || new Date().getFullYear() + "/" + (new Date().getFullYear()+1);
+    let tpTerdeteksi = teksTabFull.split(' ')[0]; // Contoh: "2026/2027"[cite: 1]
     
     let indexTabAktif = $('#tabSiswa .nav-item').index(tabAktif.parent());
-    if(indexTabAktif === -1) indexTabAktif = 0; // Jaga-jaga jika struktur tab berubah
+    if(indexTabAktif === -1) indexTabAktif = 0; 
 
     let petugasTerpilihLayar = $('#filterSiswaPetugas').val() || ""; 
 
-    // Tampilkan Loading Swal agar terlihat profesional
     Swal.fire({
         title: 'Menyiapkan Data...',
-        text: 'Mengambil data kelas dan petugas terbaru...',
+        text: 'Menyelaraskan kelas dengan Tahun Pelajaran aktif...',
         allowOutsideClick: false,
         didOpen: () => Swal.showLoading()
     });
 
     try {
-        // 💡 JURUS SAKTI: Tarik data segar langsung dari Firebase! (Anti "Data Belum Siap")
         let [snapProfil, snapTp, snapSiswa] = await Promise.all([
             db.ref('Database_SIPITUNG/ProfilSekolah').once('value'),
             db.ref('Database_SIPITUNG/TahunPelajaran').once('value'),
@@ -10027,14 +10366,12 @@ window.bukaMenuCetakKartuManual = async function() {
         let arrTp = Array.isArray(tpRaw) ? tpRaw : Object.values(tpRaw);
         let arrSiswa = Array.isArray(sswRaw) ? sswRaw : Object.values(sswRaw);
 
-        // Siapkan daftar Petugas dari Profil
+        window.tempDataCetakKartu = { tp: arrTp, siswa: arrSiswa };
+
         let dPetugas = [];
         if(pRaw.Petugas1) dPetugas.push(pRaw.Petugas1.trim());
         if(pRaw.Petugas2) dPetugas.push(pRaw.Petugas2.trim());
         if(pRaw.Petugas3) dPetugas.push(pRaw.Petugas3.trim());
-
-        // Simpan data fresh ke variabel temporary untuk digunakan fungsi PDF nanti
-        window.tempDataCetakKartu = { tp: arrTp, siswa: arrSiswa };
 
         let optPetugas = '<option value="">-- Pilih Petugas --</option>';
         dPetugas.forEach(p => { 
@@ -10042,7 +10379,6 @@ window.bukaMenuCetakKartuManual = async function() {
             optPetugas += `<option value="${p}" ${selected}>${p}</option>`; 
         });
 
-        // Buka Pop-up Menu Cetak
         Swal.fire({
             title: '<i class="fas fa-book text-success"></i> Cetak Kartu Manual',
             html: `
@@ -10058,13 +10394,14 @@ window.bukaMenuCetakKartuManual = async function() {
                     </div>
 
                     <div id="boxKelas" class="mb-3">
-                        <label class="fw-bold small">2. Pilih Kelas (Hanya di TP ini):</label>
+                        <label class="fw-bold small">2. Pilih Kelas:</label>
                         <select id="selKelas" class="form-select border-primary shadow-sm"></select>
                     </div>
 
                     <div class="mb-3">
                         <label class="fw-bold small">3. Nominal Wajib (Rp):</label>
-                        <input type="number" id="selNominal" class="form-control border-primary shadow-sm" value="25000">
+                        <!-- FIX: Type text agar bisa diformat titik, value dibuat kosong -->
+                        <input type="text" id="selNominal" class="form-control border-primary shadow-sm" placeholder="Contoh: 50.000" value="">
                     </div>
                 </div>
             `,
@@ -10073,45 +10410,55 @@ window.bukaMenuCetakKartuManual = async function() {
             confirmButtonText: 'Buat PDF F4',
             cancelButtonText: 'Batal',
             didOpen: () => {
-                const updateKelasByIndeks = (pDipilih) => {
+                // --- LOGIKA AUTO-FORMAT RUPIAH ---
+                const inputNominal = document.getElementById('selNominal');
+                inputNominal.addEventListener('input', function(e) {
+                    let value = e.target.value.replace(/\D/g, ""); // Hapus karakter non-angka
+                    if (value) {
+                        // Format ke Rupiah dengan titik pemisah ribuan
+                        e.target.value = value.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+                    } else {
+                        e.target.value = "";
+                    }
+                });
+
+                const updateKelasByMatchTp = (pDipilih) => {
                     if(!pDipilih) return $('#selKelas').html('<option value="">-- Pilih Kelas --</option>');
-                    
                     let setKls = new Set();
                     arrSiswa.forEach(s => {
                         if(s && (s[7]||'').toString().trim() === pDipilih.trim()) {
-                            
-                            let idTpSiswa = (s[8 + indexTabAktif] || '').toString().trim();
-                            let tpMasterData = arrTp.find(t => String(t[0]) === idTpSiswa);
-                            
-                            // Ambil kelas hanya jika TP tersebut AKAN/SEDANG aktif (bukan Nonaktif/Lulus)
-                            if (tpMasterData && tpMasterData[5] !== 'Nonaktif' && tpMasterData[5] !== 'Lulus') {
-                                let kolomKelasIdx = 4 + indexTabAktif;
-                                let kls = (s[kolomKelasIdx]||'').toString().trim();
-                                if(kls && kls !== "-" && kls !== "") setKls.add(kls);
+                            for(let i = 0; i < 3; i++) {
+                                let idTpSiswa = (s[8 + i] || '').toString().trim();
+                                let tpMaster = arrTp.find(t => String(t[0]) === idTpSiswa);
+                                if (tpMaster && tpMaster[1] === tpTerdeteksi) {
+                                    let kls = (s[4 + i] || '').toString().trim();
+                                    if(kls && kls !== "-" && kls !== "") setKls.add(kls);
+                                }
                             }
                         }
                     });
-
                     let optKls = '<option value="">-- Pilih Kelas --</option>';
-                    Array.from(setKls).sort().forEach(k => {
-                        optKls += `<option value="${k}">${k}</option>`;
-                    });
+                    Array.from(setKls).sort().forEach(k => { optKls += `<option value="${k}">${k}</option>`; });
                     $('#selKelas').html(optKls);
                 };
 
-                if(petugasTerpilihLayar) updateKelasByIndeks(petugasTerpilihLayar);
-                $('#selPetugas').on('change', function() { updateKelasByIndeks($(this).val()); });
+                if(petugasTerpilihLayar) updateKelasByMatchTp(petugasTerpilihLayar);
+                $('#selPetugas').on('change', function() { updateKelasByMatchTp($(this).val()); });
             },
             preConfirm: () => {
                 let p = $('#selPetugas').val();
                 let k = $('#selKelas').val();
-                let n = $('#selNominal').val();
-                if(!p || !k) return Swal.showValidationMessage('Pilih Petugas & Kelas terlebih dahulu!');
-                return { petugas: p, kelas: k, nominal: n, tpNama: tpTerdeteksi, idxTab: indexTabAktif };
+                let nRaw = $('#selNominal').val();
+                
+                // Bersihkan titik sebelum dikirim ke mesin PDF
+                let nNumeric = nRaw.replace(/\./g, "");
+
+                if(!p || !k || !nNumeric) return Swal.showValidationMessage('Petugas, Kelas, & Nominal harus diisi!');
+                return { petugas: p, kelas: k, nominal: nNumeric, tpNama: tpTerdeteksi };
             }
         }).then(res => {
             if(res.isConfirmed) {
-                window.eksekusiCetakKartuManual(res.value.tpNama, res.value.kelas, res.value.nominal, res.value.petugas, res.value.idxTab);
+                window.eksekusiCetakKartuManual(res.value.tpNama, res.value.kelas, res.value.nominal, res.value.petugas);
             }
         });
 
@@ -10121,9 +10468,9 @@ window.bukaMenuCetakKartuManual = async function() {
 }
 
 // ========================================================
-// 2. MESIN PELUKIS PDF (MENGGUNAKAN DATA FRESH)
+// 2. MESIN PELUKIS PDF (FIX: FORMAT MATA UANG DI DALAM PDF)
 // ========================================================
-window.eksekusiCetakKartuManual = async function(tpNama, kelasTarget, nominal, petugasTarget, idxTab) {
+window.eksekusiCetakKartuManual = async function(tpNama, kelasTarget, nominal, petugasTarget) {
     Swal.fire({ 
         title: 'Mencetak...', 
         text: 'Menghasilkan Kartu Tabungan & QR Code...', 
@@ -10132,76 +10479,70 @@ window.eksekusiCetakKartuManual = async function(tpNama, kelasTarget, nominal, p
     });
 
     try {
-        // Gunakan data fresh yang tadi disedot oleh fungsi bukaMenuCetakKartuManual
         let d = window.tempDataCetakKartu;
         let arrSiswa = d.siswa;
-        let kolomKelasIdx = 4 + idxTab; 
+        let arrTp = d.tp;
 
-        // Saring siswa dengan ketat
-        let siswaFinal = arrSiswa.filter(s => {
-            if (!s || (s[7]||'').toString().trim() !== petugasTarget.trim()) return false;
-            if ((s[kolomKelasIdx]||'').toString().trim() !== kelasTarget.trim()) return false;
-            
-            // Cek status TP (Abaikan jika siswa ini Batal Lulus dari masa lalu)
-            let idTpSiswa = (s[8 + idxTab] || '').toString().trim();
-            let tpMasterData = d.tp.find(t => String(t[0]) === idTpSiswa);
-            if (!tpMasterData || tpMasterData[5] === 'Nonaktif' || tpMasterData[5] === 'Lulus') return false;
-
-            return true;
+        let siswaFinal = [];
+        arrSiswa.forEach(s => {
+            if (!s || (s[7]||'').toString().trim() !== petugasTarget.trim()) return;
+            for(let i = 0; i < 3; i++) {
+                let idTpSiswa = (s[8 + i] || '').toString().trim();
+                let tpMaster = arrTp.find(t => String(t[0]) === idTpSiswa);
+                if (tpMaster && tpMaster[1] === tpNama) {
+                    let klsSiswa = (s[4 + i] || '').toString().trim();
+                    if (klsSiswa === kelasTarget) {
+                        siswaFinal.push(s);
+                        break; 
+                    }
+                }
+            }
         });
 
         if(siswaFinal.length === 0) {
             Swal.close();
-            return Swal.fire('Gagal', 'Siswa aktif tidak ditemukan di kelas ini.', 'error');
+            return Swal.fire('Gagal', 'Siswa tidak ditemukan.', 'error');
         }
 
-        // Urutkan siswa berdasarkan Nama
         siswaFinal.sort((a,b) => (a[1]||'').localeCompare(b[1]||''));
 
         await loadQRCodeLibrary();
         const { jsPDF } = window.jspdf;
-        const doc = new jsPDF('l', 'mm', [215.9, 330.2]); // Ukuran F4
+        const doc = new jsPDF('l', 'mm', [215.9, 330.2]); // Ukuran F4[cite: 1]
         
-        let namaSekolah = "SMP NEGERI 3 NGULING";
         let snapSekolah = await db.ref('Database_SIPITUNG/ProfilSekolah/NamaSekolah').once('value');
-        if(snapSekolah.val()) namaSekolah = snapSekolah.val();
+        let namaSekolah = snapSekolah.val() || "SMP NEGERI 3 NGULING";
 
         const lukisSatuKartu = async (startX, startY, s, absen) => {
             let namaSiswa = (s[1]||'').toUpperCase();
             let nisn = s[0]||'';
             
-            // Header
+            // Header & Data Diri[cite: 1]
             doc.setFont("helvetica", "bold"); doc.setFontSize(14);
             doc.text("KARTU TABUNGAN SISWA", startX + 72.5, startY, {align: 'center'});
             doc.text(namaSekolah, startX + 72.5, startY + 6, {align: 'center'});
             doc.setFontSize(9); doc.text("TAHUN PELAJARAN " + tpNama, startX + 72.5, startY + 11, {align: 'center'});
             doc.setLineWidth(0.5); doc.line(startX, startY + 13, startX + 145, startY + 13);
 
-            // Data Diri
             doc.setFont("helvetica", "normal"); doc.setFontSize(9);
             doc.text("Nama", startX + 2, startY + 19); doc.text(": " + namaSiswa, startX + 22, startY + 19);
             doc.text("Kls / Abs", startX + 2, startY + 24); doc.text(": " + kelasTarget + " / " + absen, startX + 22, startY + 24);
             doc.text("NISN", startX + 2, startY + 29); doc.text(": " + nisn, startX + 22, startY + 29);
             
-            // QR CODE
             let qrUrl = await generateQRBase64(nisn);
             if(qrUrl) doc.addImage(qrUrl, 'PNG', startX + 123, startY - 2, 20, 20);
             doc.setLineWidth(0.2); doc.rect(startX + 122, startY - 5, 22, 25);
 
-            // NOMOR ABSEN
             doc.setFont("helvetica", "bold"); doc.setFontSize(16); 
             doc.text(String(absen), startX + 133, startY + 26, {align: 'center'}); 
 
-            // --- STRUKTUR TABEL FINAL ---
+            // --- TABEL TABUNGAN[cite: 1] ---
             let mths = ['JULI','AGUSTUS','SEPTEMBER','OKTOBER','NOPEMBER','DESEMBER','JANUARI','PEBRUARI','MARET','APRIL','MEI','JUNI'];
-            let tY = startY + 32; 
-            let rowH = 11.6;
+            let tY = startY + 32; let rowH = 11.6;
             
             for(let i=0; i<12; i++){
                 let y = tY + (i * rowH);
-                doc.setLineWidth(0.2);
-                doc.rect(startX, y, 145, rowH);
-                
+                doc.setLineWidth(0.2); doc.rect(startX, y, 145, rowH);
                 doc.line(startX+12, y, startX+12, y+rowH); 
                 doc.line(startX+40, y, startX+40, y+rowH); 
                 doc.line(startX+56, y, startX+56, y+rowH); 
@@ -10209,49 +10550,30 @@ window.eksekusiCetakKartuManual = async function(tpNama, kelasTarget, nominal, p
                 doc.line(startX+130, y, startX+130, y+rowH); 
 
                 doc.setFont("helvetica", "normal"); doc.setFontSize(7);
-                doc.text("Bulan", startX+1, y+4);
-                doc.text("Rp.", startX+1, y+10);
+                doc.text("Bulan", startX+1, y+4); doc.text("Rp.", startX+1, y+10);
+                doc.setFont("helvetica", "bold"); doc.text(mths[i], startX+13, y+7); 
                 
-                doc.setFont("helvetica", "bold");
-                doc.text(mths[i], startX+13, y+7); 
-                
-                let nomTeks = Number(nominal).toLocaleString('en-US');
+                // Format Rupiah di kolom PDF
+                let nomTeks = Number(nominal).toLocaleString('id-ID'); // Menggunakan format Indonesia
                 doc.text("Rp. " + nomTeks, startX+54, y+7, {align: 'right'}); 
                 
                 doc.setFont("helvetica", "normal"); doc.setFontSize(5.5);
-                doc.text("Tgl: ___/___/20__", startX+57.5, y+5);
-                doc.text("Paraf: ________", startX+57.5, y+10);
+                doc.text("Tgl: ___/___/20__", startX+57.5, y+5); doc.text("Paraf: ________", startX+57.5, y+10);
 
+                // Kwitansi kecil di sebelah kanan kartu[cite: 1]
                 let labelKwitansi = `${namaSiswa} / ${kelasTarget} / ${absen}`;
-                
-                let fontSizeStub = 6;
-                let maxLabelWidth = 48; 
+                let fontSizeStub = 6; 
                 doc.setFontSize(fontSizeStub);
                 let currentWidth = doc.getTextWidth(labelKwitansi);
-                
-                if (currentWidth > maxLabelWidth) {
-                    fontSizeStub = fontSizeStub * (maxLabelWidth / currentWidth);
-                }
-                
-                doc.setFontSize(fontSizeStub);
-                doc.setFont("helvetica", "bold");
+                if (currentWidth > 48) fontSizeStub = fontSizeStub * (48 / currentWidth);
+                doc.setFontSize(fontSizeStub); doc.setFont("helvetica", "bold");
                 doc.text(labelKwitansi, startX + 81.5, y + 3.5);
-                
-                doc.setFontSize(6);
-                doc.setFont("helvetica", "normal");
-                doc.text(mths[i], startX + 81.5, y + 7.5);
-                doc.text("Tgl: ___/___/20__", startX + 101, y + 7.5); 
-                
+                doc.setFontSize(6); doc.setFont("helvetica", "normal");
+                doc.text(mths[i], startX + 81.5, y + 7.5); doc.text("Tgl: ___/___/20__", startX + 101, y + 7.5); 
                 doc.text("Rp. " + nomTeks, startX + 81.5, y + 11);
-                
-                doc.setFontSize(5.5);
-                doc.text("PARAF", startX + 132, y + 4.5); 
-                doc.setFontSize(7);
+                doc.setFontSize(5.5); doc.text("PARAF", startX + 132, y + 4.5); doc.setFontSize(7);
             }
-            
-            // Footer Petugas
-            let fY = tY + (12 * rowH) + 3;
-            doc.setFontSize(8);
+            let fY = tY + (12 * rowH) + 3; doc.setFontSize(8);
             doc.text("Petugas: " + petugasTarget, startX + 145, fY + 5, {align: 'right'});
         };
 
@@ -10261,17 +10583,12 @@ window.eksekusiCetakKartuManual = async function(tpNama, kelasTarget, nominal, p
             await lukisSatuKartu(10, 15, siswaFinal[i*2], (i*2)+1);
             if(siswaFinal[i*2+1]) {
                 await lukisSatuKartu(175, 15, siswaFinal[i*2+1], (i*2)+2);
-                doc.setLineDashPattern([2, 2], 0); 
-                doc.line(165, 5, 165, 210); 
-                doc.setLineDashPattern([], 0);
+                doc.setLineDashPattern([2, 2], 0); doc.line(165, 5, 165, 210); doc.setLineDashPattern([], 0);
             }
         }
-
         doc.save(`KARTU_TABUNGAN_SISWA_${kelasTarget}.pdf`);
         Swal.fire('Selesai!', 'Kartu tabungan berhasil dicetak!', 'success');
-
     } catch(err) {
-        console.error(err);
         Swal.fire('Error', err.message, 'error');
     }
 }
