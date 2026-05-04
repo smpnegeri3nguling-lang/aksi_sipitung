@@ -7587,11 +7587,11 @@ window.loadTabunganSayaPage = function() {
 }
 
 // ==========================================
-// FUNGSI TAB 4: BANK & PINJAMAN (V4.9.7 - FIX SALDO MURNI & FILTER TP AKTIF)
+// FUNGSI TAB 4: BANK & PINJAMAN (V5.2 - FIX MINUS & FITUR EDIT PINJAMAN/CICILAN)
 // ==========================================
 
 // ==========================================
-// RENDER BANK & PINJAMAN (V5.0 SMART-SYNC - ANTI SELISIH SALDO MURNI)
+// RENDER BANK & PINJAMAN (SMART-SYNC - ANTI SELISIH SALDO MURNI)
 // ==========================================
 window.renderBankPinjaman = function() {
     Promise.all([
@@ -7671,11 +7671,10 @@ window.renderBankPinjaman = function() {
             let nom = Number(p[4] || 0);
             if (idTrans.startsWith('RET_')) {
                 let nisn = idTrans.replace('RET_', '');
-                // Cek apakah siswa ini sudah masuk riwayat/arsip
                 let isArsip = d.riwayatSiswa ? Object.values(d.riwayatSiswa).some(row => row && String(row[0]) === nisn) : false;
-                if (isArsip) return; // Lewati pengembalian arsip agar saldo murni akurat ke brankas aktif
+                if (isArsip) return; 
                 
-                nom = getSisaSaldoLive(nisn); // Gunakan angka LIVE
+                nom = getSisaSaldoLive(nisn); 
             }
 
             if (isKasLain) {
@@ -7707,30 +7706,60 @@ window.renderBankPinjaman = function() {
         });
         $('#bodyTabelBank').html(hBank || '<tr><td colspan="4" class="text-center text-muted py-3">Belum ada data transaksi bank</td></tr>');
 
-        // 5. RENDER DATA PINJAMAN
+        // 5. RENDER DATA PINJAMAN (DENGAN TOMBOL EDIT)
         let tPinjamKeluar = 0; let tPinjamLunas = 0; let hPinj = '';
         d.pinjaman.forEach(p => {
             let id = p[0]; let nom = Number(p[4]||0); let dibayar = 0;
             d.pelunasan.forEach(l => { if(l[1] === id) dibayar += Number(l[3]||0); });
             tPinjamKeluar += nom; tPinjamLunas += dibayar; let sisa = nom - dibayar;
             let badge = sisa <= 0 ? '<span class="badge bg-success shadow-sm">LUNAS</span>' : '<span class="badge bg-warning text-dark shadow-sm">Belum Lunas</span>';
-            hPinj += `<tr><td class="align-middle"><b>${p[2]}</b><br><small class="text-muted"><i class="fas fa-calendar-alt"></i> ${formatTanggalAman(p[1])}</small></td><td class="text-end align-middle">${formatRp(nom)}</td><td class="text-end text-danger fw-bold align-middle fs-6">${formatRp(sisa)}</td><td class="text-center align-middle">${badge}</td><td class="text-center align-middle"><button class="btn btn-sm btn-success fw-bold py-1 shadow-sm mb-1" onclick="bukaModalPelunasan('${id}', '${amankanAttr(p[2])}', ${sisa})"><i class="fas fa-hand-holding-usd"></i> Cicilan</button> <button class="btn btn-sm btn-outline-danger py-1 shadow-sm mb-1" onclick="hapusBankPinj('${id}', 'pinjaman')"><i class="fas fa-trash"></i></button></td></tr>`;
+            
+            hPinj += `<tr>
+                <td class="align-middle"><b>${p[2]}</b><br><small class="text-muted"><i class="fas fa-calendar-alt"></i> ${formatTanggalAman(p[1])}</small></td>
+                <td class="text-end align-middle">${formatRp(nom)}</td>
+                <td class="text-end text-danger fw-bold align-middle fs-6">${formatRp(sisa)}</td>
+                <td class="text-center align-middle">${badge}</td>
+                <td class="text-center align-middle">
+                    <button class="btn btn-sm btn-success fw-bold py-1 shadow-sm mb-1" onclick="bukaModalPelunasan('${id}', '${amankanAttr(p[2])}', ${sisa})"><i class="fas fa-hand-holding-usd"></i> Cicilan</button> 
+                    <button class="btn btn-sm btn-primary py-1 shadow-sm mb-1" onclick="editPinjaman('${id}', '${p[1]}', '${amankanAttr(p[2])}', ${nom}, '${amankanAttr(p[3]||'-')}')" title="Edit Pinjaman"><i class="fas fa-edit"></i></button>
+                    <button class="btn btn-sm btn-outline-danger py-1 shadow-sm mb-1" onclick="hapusBankPinj('${id}', 'pinjaman')" title="Hapus Pinjaman"><i class="fas fa-trash"></i></button>
+                </td>
+            </tr>`;
         });
         $('#bodyTabelPinjaman').html(hPinj || '<tr><td colspan="5" class="text-center text-muted py-3">Belum ada data pinjaman</td></tr>');
 
-        // 6. KALKULASI SALDO MURNI FINAL (SMART-SYNC)
+        // ==========================================
+        // 6. KALKULASI SALDO MURNI FINAL (DENGAN DETEKSI MINUS)
+        // ==========================================
         let saldoMurni = (totalDiterima + totalPemasukanLain + tBunga) - (totalKeluar + tAdmin + (tPinjamKeluar - tPinjamLunas));
+        
+        let textClass = 'text-white';
+        let bgStyle = 'background: linear-gradient(135deg, #0d6efd, #0dcaf0);';
+        let saldoTampil = formatRp(saldoMurni);
+        let ketMinus = '';
+
+        if (saldoMurni < 0) {
+            textClass = 'text-danger';
+            bgStyle = 'background: #fff; border: 2px solid #dc3545 !important;'; 
+            saldoTampil = `- ${formatRp(Math.abs(saldoMurni))}`; 
+            ketMinus = '<span class="badge bg-danger ms-2 shadow-sm" style="font-size:0.65em; vertical-align: middle;">(Saldo Minus)</span>';
+        }
+
         $('#area-saldo-global-bank').html(`
-            <div class="card bg-primary text-white shadow-sm border-0 rounded-4" style="background: linear-gradient(135deg, #0d6efd, #0dcaf0);">
+            <div class="card shadow-sm border-0 rounded-4" style="${bgStyle}">
                 <div class="card-body p-4 text-center">
-                    <h6 class="text-white-50 text-uppercase fw-bold"><i class="fas fa-wallet"></i> Saldo Murni Rekening / Brankas Bendahara</h6>
-                    <h2 class="display-6 fw-bold mb-0">${formatRp(saldoMurni)}</h2>
-                    <p class="mb-0 mt-2 small text-light opacity-75">Saldo akurat hasil sinkronisasi real-time dengan setoran aktif dan sisa saldo lulusan.</p>
+                    <h6 class="text-uppercase fw-bold" style="color: ${saldoMurni < 0 ? '#dc3545' : 'rgba(255,255,255,0.7)'}"><i class="fas fa-wallet"></i> Saldo Murni Rekening / Brankas Bendahara</h6>
+                    <h2 class="display-6 fw-bold mb-0 ${textClass}">${saldoTampil} ${ketMinus}</h2>
+                    <p class="mb-0 mt-2 small" style="color: ${saldoMurni < 0 ? '#dc3545' : 'rgba(255,255,255,0.9)'}">Saldo akurat hasil sinkronisasi real-time dengan setoran aktif dan sisa saldo lulusan.</p>
                 </div>
             </div>
         `);
     }).catch(e => { console.error(e); });
 }
+
+// ==========================================
+// KUMPULAN FUNGSI SIMPAN & EDIT (BANK, PINJAMAN, PELUNASAN)
+// ==========================================
 
 window.prosesSimpanBank = function() {
     let tgl=$('#inpBankTgl').val(), jen=$('#inpBankJenis').val(), nom=unformatUang($('#inpBankNominal').val()), ket=$('#inpBankKet').val() || '-';
@@ -7743,28 +7772,77 @@ window.prosesSimpanBank = function() {
     }).catch(tanganiError);
 }
 
+// FITUR TAMBAH BARU PINJAMAN (Reset form)
+window.tambahPinjamanBaru = function() {
+    window.idEditPinjaman = null; // Pastikan kosong
+    $('#inpPinjTgl').val(new Date().toISOString().split('T')[0]);
+    $('#inpPinjNama').val('');
+    $('#inpPinjNominal').val('');
+    $('#inpPinjKet').val('');
+    bukaModalAman('modalTambahPinjaman');
+}
+
+// FITUR EDIT PINJAMAN
+window.editPinjaman = function(id, tgl, pem, nom, ket) {
+    window.idEditPinjaman = id; // Kunci ID agar diupdate, bukan ditambah baru
+    $('#inpPinjTgl').val(tgl);
+    $('#inpPinjNama').val(pem);
+    $('#inpPinjNominal').val(nom.toLocaleString('id-ID'));
+    $('#inpPinjKet').val(ket);
+    bukaModalAman('modalTambahPinjaman');
+}
+
 window.prosesSimpanPinjaman = function() {
     let tgl=$('#inpPinjTgl').val(), pem=$('#inpPinjNama').val(), nom=unformatUang($('#inpPinjNominal').val()), ket=$('#inpPinjKet').val() || '-';
     if(!tgl || !pem || nom===0) return notifikasiAman("Lengkapi semua form wajib!", "warning");
     $('#modalTambahPinjaman').modal('hide'); 
     Swal.fire({title:'Menyimpan...', didOpen:()=>Swal.showLoading()});
-    let id = 'PNJ_' + Date.now();
+    
+    // Gunakan ID lama jika Edit, atau buat ID baru jika Tambah
+    let id = window.idEditPinjaman || ('PNJ_' + Date.now()); 
+    
     db.ref('Database_SIPITUNG/PinjamanSekolah/' + id).set([id, tgl, pem, ket, nom]).then(() => {
+        window.idEditPinjaman = null; // Reset setelah sukses
         bersihkanCache(); Swal.close(); renderBankPinjaman();
     }).catch(tanganiError);
 }
 
+// ==========================================
+// PELUNASAN (CICILAN)
+// ==========================================
 window.bukaModalPelunasan = function(id, nama, sisa) {
-    $('#inpLunasId').val(id); $('#txtSisaTanggungan').text(formatRp(sisa));
+    window.idEditPelunasan = null; // Selalu pastikan statusnya "Tambah Baru" saat buka modal
+    $('#inpLunasId').val(id); 
+    $('#txtSisaTanggungan').text(formatRp(sisa));
     $('#inpLunasTgl').val(new Date().toISOString().split('T')[0]); 
     $('#inpLunasNominal').val('');
+    
     let hRiwayat = ''; 
     let riw = dataKeuanganGlobal.pelunasan.filter(x => x[1] === id).sort((a,b) => new Date(b[2]) - new Date(a[2]));
+    
     riw.forEach(r => { 
-        hRiwayat += `<li class="list-group-item d-flex justify-content-between align-items-center"><div><span class="text-muted small"><i class="fas fa-calendar-alt"></i> ${formatTanggalAman(r[2])}</span><br><span class="text-success fw-bold fs-6">${formatRp(r[3])}</span></div><button type="button" class="btn btn-sm btn-outline-danger fw-bold shadow-sm" onclick="hapusBankPinj('${r[0]}', 'pelunasan')"><i class="fas fa-trash"></i> Hapus</button></li>`; 
+        hRiwayat += `<li class="list-group-item d-flex justify-content-between align-items-center">
+            <div>
+                <span class="text-muted small"><i class="fas fa-calendar-alt"></i> ${formatTanggalAman(r[2])}</span><br>
+                <span class="text-success fw-bold fs-6">${formatRp(r[3])}</span>
+            </div>
+            <div>
+                <button type="button" class="btn btn-sm btn-outline-primary fw-bold shadow-sm me-1" onclick="editPelunasan('${r[0]}', '${r[2]}', ${r[3]})" title="Edit Cicilan"><i class="fas fa-edit"></i></button>
+                <button type="button" class="btn btn-sm btn-outline-danger fw-bold shadow-sm" onclick="hapusBankPinj('${r[0]}', 'pelunasan')" title="Hapus"><i class="fas fa-trash"></i></button>
+            </div>
+        </li>`; 
     });
     $('#listRiwayatPelunasan').html(hRiwayat || '<li class="list-group-item text-center text-muted">Belum ada cicilan terbayar</li>');
     bukaModalAman('modalPelunasan');
+}
+
+// FITUR EDIT CICILAN (Tarik data ke form input atas)
+window.editPelunasan = function(idLunas, tgl, nom) {
+    window.idEditPelunasan = idLunas; // Kunci ID Cicilan
+    $('#inpLunasTgl').val(tgl);
+    $('#inpLunasNominal').val(nom.toLocaleString('id-ID'));
+    // Fokuskan pandangan user ke input nominal
+    $('#inpLunasNominal').focus();
 }
 
 window.prosesSimpanPelunasan = function() {
@@ -7772,8 +7850,12 @@ window.prosesSimpanPelunasan = function() {
     if(!tgl || nom===0) return notifikasiAman("Lengkapi nominal bayar!", "warning");
     $('#modalPelunasan').modal('hide'); 
     Swal.fire({title:'Memproses...', didOpen:()=>Swal.showLoading()});
-    let idLunas = 'LUNAS_' + Date.now();
+    
+    // Gunakan ID lama jika Edit, atau buat ID baru jika Tambah
+    let idLunas = window.idEditPelunasan || ('LUNAS_' + Date.now()); 
+    
     db.ref('Database_SIPITUNG/RiwayatPelunasan/' + idLunas).set([idLunas, idPinjam, tgl, nom]).then(() => {
+        window.idEditPelunasan = null; // Reset setelah sukses
         bersihkanCache(); Swal.close(); renderBankPinjaman();
     }).catch(tanganiError);
 }
@@ -7783,11 +7865,13 @@ window.hapusBankPinj = function(id, jenis) {
         let path = (jenis==='bank'?'TransaksiBank/':(jenis==='pinjaman'?'PinjamanSekolah/':'RiwayatPelunasan/')) + id;
         db.ref('Database_SIPITUNG/' + path).remove().then(() => {
             bersihkanCache(); 
+            // Jika yang dihapus adalah cicilan, kita tutup modalnya sejenak agar UI me-refresh dengan bersih
             if(jenis === 'pelunasan') try { bootstrap.Modal.getInstance(document.getElementById('modalPelunasan')).hide(); } catch(e){}
             renderBankPinjaman(); 
         }).catch(tanganiError);
     });
 }
+
 // ==========================================
 // 28. MESIN LAPORAN AKUNTANSI & CETAK (V5.0 SMART-SYNC - ANTI SELISIH)
 // ==========================================
@@ -7823,7 +7907,7 @@ function getRentangTanggalAkun() {
 }
 
 // ==========================================
-// 28. MESIN LAPORAN AKUNTANSI (V5.1 GROUPING & SMART-SYNC)
+// 28. MESIN LAPORAN AKUNTANSI (V5.1 GROUPING & SMART-SYNC & MINUS DETECTOR)
 // ==========================================
 function previewLaporanAkuntansi() {
     let Jenis = $('#lapAkunJenis').val(); 
@@ -7902,14 +7986,14 @@ function previewLaporanAkuntansi() {
                 let sData = folderSiswa.find(x => x && String(x[0]) === nisn);
                 let kls = sData ? (sData[6] || 'Umum') : 'Umum';
                 let namaSis = sData ? sData[1] : (p[5] || 'Siswa');
-                let tglKey = p[1] + "_" + kls; // Grouping by Date & Class
+                let tglKey = p[1] + "_" + kls; 
 
                 if(!grupRET[tglKey]) {
                     grupRET[tglKey] = { tgl: p[1], kls: kls, total: 0, listNama: [] };
                 }
                 grupRET[tglKey].total += getSisaSaldoLive(nisn);
                 grupRET[tglKey].listNama.push(namaSis);
-                return; // Jangan push ke 'trans' dulu
+                return; 
             }
 
             // --- PENGELUARAN BIASA ---
@@ -7947,27 +8031,60 @@ function previewLaporanAkuntansi() {
     }); 
     trPeriode.sort((a,b) => a.tgl - b.tgl);
     
+    // ==========================================
+    // HELPER FORMATTER SALDO MINUS KESELURUHAN (WEB, EXCEL, PDF)
+    // ==========================================
+    const formatSaldo = (saldo) => {
+        if (saldo < 0) {
+            let stringMinus = `- ${formatRp(Math.abs(saldo))} (saldo minus)`;
+            return {
+                html: `<span class="text-danger fw-bold">- ${formatRp(Math.abs(saldo))} <small>(saldo minus)</small></span>`,
+                excel: stringMinus,
+                pdfTxt: stringMinus,
+                pdfSty: { textColor: [220, 53, 69], fontStyle: 'bold' } // Kode warna merah
+            };
+        } else {
+            return {
+                html: `<span class="fw-bold">${formatRp(saldo)}</span>`,
+                excel: saldo,
+                pdfTxt: formatRp(saldo),
+                pdfSty: { fontStyle: 'bold' }
+            };
+        }
+    };
+
     // Bangun UI & Data Cetak
     let html = `<h5 class="text-center fw-bold text-dark mb-0">${labelJenis.toUpperCase()}</h5><p class="text-center text-muted mb-3 small">Periode: ${rentang.teks}</p><table class="table table-sm table-bordered" style="font-size: 0.85rem;"><thead class="table-dark text-center"><tr><th>No</th><th>Tanggal</th><th>Uraian Transaksi</th><th>Debit (Masuk)</th><th>Kredit (Keluar)</th><th>Saldo</th></tr></thead><tbody>`;
     let curSaldo = saldoAwal; let totalMsk = 0; let totalKlr = 0; 
     let excelData = [[labelJenis.toUpperCase()], [`Periode: ${rentang.teks}`], [], ['No', 'Tanggal', 'Uraian Transaksi', 'Debit (Masuk)', 'Kredit (Keluar)', 'Saldo']]; 
     let pdfBody = [];
     
-    html += `<tr class="table-warning fw-bold"><td colspan="3" class="text-end">SALDO AWAL PERIODE INI</td><td></td><td></td><td class="text-end">${formatRp(curSaldo)}</td></tr>`; 
-    excelData.push(['', '', 'SALDO AWAL PERIODE INI', 0, 0, curSaldo]); 
-    pdfBody.push([{content:'SALDO AWAL PERIODE INI', colSpan:3, styles:{halign:'right', fontStyle:'bold', fillColor:[255,235,156]}}, {content:''}, {content:''}, {content:formatRp(curSaldo), styles:{fontStyle:'bold', fillColor:[255,235,156]}}]);
+    // RENDER SALDO AWAL
+    let fAw = formatSaldo(curSaldo);
+    html += `<tr class="table-warning fw-bold"><td colspan="3" class="text-end">SALDO AWAL PERIODE INI</td><td></td><td></td><td class="text-end">${fAw.html}</td></tr>`; 
+    excelData.push(['', '', 'SALDO AWAL PERIODE INI', 0, 0, fAw.excel]); 
+    // Gabungkan background kuning dengan font style dari helper
+    pdfBody.push([{content:'SALDO AWAL PERIODE INI', colSpan:3, styles:{halign:'right', fontStyle:'bold', fillColor:[255,235,156]}}, {content:''}, {content:''}, {content:fAw.pdfTxt, styles:Object.assign({fillColor:[255,235,156]}, fAw.pdfSty)}]);
     
+    // RENDER BARIS TRANSAKSI
     trPeriode.forEach((t, i) => { 
         curSaldo += (t.msk - t.klr); totalMsk += t.msk; totalKlr += t.klr; 
         let tglStr = formatTanggalAman(t.tgl.toISOString()); 
-        html += `<tr><td class="text-center">${i+1}</td><td class="text-center">${tglStr}</td><td>${t.ur}</td><td class="text-end text-primary">${formatRp(t.msk)}</td><td class="text-end text-danger">${formatRp(t.klr)}</td><td class="text-end fw-bold">${formatRp(curSaldo)}</td></tr>`; 
-        excelData.push([i+1, tglStr, t.ur, t.msk, t.klr, curSaldo]); 
-        pdfBody.push([i+1, tglStr, t.ur, formatRp(t.msk), formatRp(t.klr), formatRp(curSaldo)]); 
+        let fRun = formatSaldo(curSaldo);
+        
+        html += `<tr><td class="text-center">${i+1}</td><td class="text-center">${tglStr}</td><td>${t.ur}</td><td class="text-end text-primary">${formatRp(t.msk)}</td><td class="text-end text-danger">${formatRp(t.klr)}</td><td class="text-end">${fRun.html}</td></tr>`; 
+        excelData.push([i+1, tglStr, t.ur, t.msk, t.klr, fRun.excel]); 
+        pdfBody.push([i+1, tglStr, t.ur, formatRp(t.msk), formatRp(t.klr), {content:fRun.pdfTxt, styles:fRun.pdfSty}]); 
     });
     
-    html += `<tr class="table-dark fw-bold"><td colspan="3" class="text-center">TOTAL MUTASI & SALDO AKHIR</td><td class="text-end text-primary">${formatRp(totalMsk)}</td><td class="text-end text-danger">${formatRp(totalKlr)}</td><td class="text-end text-success">${formatRp(curSaldo)}</td></tr></tbody></table>`; 
-    excelData.push(['', '', 'TOTAL MUTASI & SALDO AKHIR', totalMsk, totalKlr, curSaldo]); 
-    pdfBody.push([{content:'TOTAL MUTASI & SALDO AKHIR', colSpan:3, styles:{halign:'center', fontStyle:'bold', fillColor:[200,200,200]}}, {content:formatRp(totalMsk), styles:{fontStyle:'bold'}}, {content:formatRp(totalKlr), styles:{fontStyle:'bold'}}, {content:formatRp(curSaldo), styles:{fontStyle:'bold'}}]);
+    // RENDER SALDO AKHIR
+    let fAk = formatSaldo(curSaldo);
+    let htmlAkhir = curSaldo < 0 ? fAk.html : `<span class="text-success fw-bold">${formatRp(curSaldo)}</span>`;
+    let styPdfAkhir = curSaldo < 0 ? fAk.pdfSty : { fontStyle: 'bold', textColor: [25, 135, 84] }; // Hijau jika positif
+
+    html += `<tr class="table-dark fw-bold"><td colspan="3" class="text-center">TOTAL MUTASI & SALDO AKHIR</td><td class="text-end text-primary">${formatRp(totalMsk)}</td><td class="text-end text-danger">${formatRp(totalKlr)}</td><td class="text-end">${htmlAkhir}</td></tr>`; 
+    excelData.push(['', '', 'TOTAL MUTASI & SALDO AKHIR', totalMsk, totalKlr, fAk.excel]); 
+    pdfBody.push([{content:'TOTAL MUTASI & SALDO AKHIR', colSpan:3, styles:{halign:'center', fontStyle:'bold', fillColor:[200,200,200]}}, {content:formatRp(totalMsk), styles:{fontStyle:'bold', halign:'right'}}, {content:formatRp(totalKlr), styles:{fontStyle:'bold', halign:'right'}}, {content:fAk.pdfTxt, styles:styPdfAkhir}]);
     
     $('#previewLaporanAkuntansi').html(html); 
     window.dataCetakAkuntansi = { judul: labelJenis.toUpperCase(), Jenis: Jenis, periodeTeks: rentang.teks, excel: excelData, pdfBody: pdfBody };
