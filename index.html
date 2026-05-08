@@ -2215,11 +2215,11 @@ window.generatePDFKartu = function(nisn, dataSiswa, allTP, arrSemuaTabungan, tar
     }
 }
 
-    // ==========================================
+// ==========================================
 // MENU BARU: KEUANGAN BENDAHARA & LULUSAN (100% FIREBASE)
 // ==========================================
 // ========================================================
-// MENU KEUANGAN & LULUSAN (V4.8 SMART CHUNKING 3 TP & GLOBAL SPLIT)
+// MENU KEUANGAN & LULUSAN (V4.9 SMART CHUNKING 3 TP & EDIT PENGELUARAN)
 // ========================================================
 window.loadKeuanganPage = function() {
     $('#bodyKasSekolah, #bodyRekapLulusan, #bodyAnalisisSelisih').html('<tr><td colspan="15" class="text-center py-5"><div class="spinner-border text-primary" style="width: 3rem; height: 3rem;" role="status"></div><br><h5 class="text-muted mt-3 fw-bold">Sinkronisasi Data Multi-Angkatan...</h5></td></tr>');
@@ -2493,7 +2493,7 @@ window.simpanPengecualian = function() {
 }
 
 // ==========================================
-// 1. RENDER KAS SEKOLAH (V5.0 SMART-SYNC - ANTI SELISIH DENGAN REKAP LULUSAN)
+// 1. RENDER KAS SEKOLAH (V5.1 SMART-SYNC - ANTI SELISIH & ADA FITUR EDIT)
 // ==========================================
 function renderKasSekolah() {
     let d = dataKeuanganGlobal; 
@@ -2655,8 +2655,9 @@ function renderKasSekolah() {
             else {
                 dp[spec].forEach((item) => {
                     subtotal += item.nom; 
-                    let btnAksi = item.isArsip ? `<span class="badge bg-secondary">Arsip</span>` : `<button class="btn btn-sm btn-danger shadow-sm" onclick="hapusPengeluaranKas('${item.id}')"><i class="fas fa-trash"></i></button>`;
-                    htmlTr += `<tr><td class="text-center">${urutKeluar++}</td><td class="text-center">${formatTanggalAman(item.tgl)}</td><td class="text-center">${item.pet}</td><td>${spec}</td><td class="text-end text-danger">${formatRp(item.nom)}</td><td>${item.ket||'-'}</td><td class="text-center">${btnAksi}</td></tr>`;
+                    // PENAMBAHAN FITUR TOMBOL EDIT DI SINI!
+                    let btnAksi = item.isArsip ? `<span class="badge bg-secondary">Arsip</span>` : `<button class="btn btn-sm btn-primary shadow-sm me-1 mb-1" onclick="editPengeluaranKas('${item.id}')" title="Edit Pengeluaran"><i class="fas fa-edit"></i></button><button class="btn btn-sm btn-danger shadow-sm mb-1" onclick="hapusPengeluaranKas('${item.id}')" title="Hapus Pengeluaran"><i class="fas fa-trash"></i></button>`;
+                    htmlTr += `<tr><td class="text-center">${urutKeluar++}</td><td class="text-center">${formatTanggalAman(item.tgl)}</td><td class="text-center">${item.pet}</td><td>${spec}</td><td class="text-end text-danger">${formatRp(item.nom)}</td><td>${item.ket||'-'}</td><td class="text-center align-middle">${btnAksi}</td></tr>`;
                 });
             }
             htmlTr += `<tr class="table-light fw-bold"><td colspan="4" class="text-end text-secondary">Subtotal ${spec} :</td><td class="text-end text-danger">${formatRp(subtotal)}</td><td colspan="2"></td></tr>`;
@@ -2670,10 +2671,11 @@ function renderKasSekolah() {
     if (vipDataKasLain.length > 0) {
         htmlVIP += `<div class="table-responsive mb-4 shadow-sm border border-success rounded-3"><table class="table table-bordered table-hover align-middle mb-0"><thead class="table-success"><tr><th colspan="7" class="text-center text-success fs-5 fw-bold py-3"><i class="fas fa-gem"></i> TRANSAKSI KAS LAIN-LAIN (ABADI)</th></tr><tr class="text-center text-dark"><th>No</th><th>Tanggal</th><th>Petugas</th><th>Jenis Transaksi</th><th>Nominal</th><th>Keterangan</th><th>Aksi</th></tr></thead><tbody>`;
         vipDataKasLain.forEach((v, idx) => {
-            let btnAksi = v.isArsip ? `<span class="badge bg-secondary">Arsip</span>` : `<button class="btn btn-sm btn-danger shadow-sm" onclick="hapusPengeluaranKas('${v.id}')"><i class="fas fa-trash"></i></button>`;
+            // PENAMBAHAN FITUR TOMBOL EDIT DI SINI!
+            let btnAksi = v.isArsip ? `<span class="badge bg-secondary">Arsip</span>` : `<button class="btn btn-sm btn-primary shadow-sm me-1 mb-1" onclick="editPengeluaranKas('${v.id}')" title="Edit Kas"><i class="fas fa-edit"></i></button><button class="btn btn-sm btn-danger shadow-sm mb-1" onclick="hapusPengeluaranKas('${v.id}')" title="Hapus Kas"><i class="fas fa-trash"></i></button>`;
             let tdSpec = v.spec === 'KAS MASUK (LAIN-LAIN)' ? `<td class="text-success fw-bold"><i class="fas fa-arrow-down"></i> Pemasukan Lain</td>` : `<td class="text-danger fw-bold"><i class="fas fa-arrow-up"></i> Pengeluaran / Potongan Lain</td>`;
             let tdNom = v.spec === 'KAS MASUK (LAIN-LAIN)' ? `<td class="text-end text-success fw-bold">+${formatRp(v.nom)}</td>` : `<td class="text-end text-danger fw-bold">-${formatRp(Math.abs(v.nom))}</td>`;
-            htmlVIP += `<tr><td class="text-center">${idx+1}</td><td class="text-center">${formatTanggalAman(v.tgl)}</td><td class="text-center">${v.pet}</td>${tdSpec}${tdNom}<td>${v.ket||'-'}</td><td class="text-center">${btnAksi}</td></tr>`;
+            htmlVIP += `<tr><td class="text-center">${idx+1}</td><td class="text-center">${formatTanggalAman(v.tgl)}</td><td class="text-center">${v.pet}</td>${tdSpec}${tdNom}<td>${v.ket||'-'}</td><td class="text-center align-middle">${btnAksi}</td></tr>`;
         });
         htmlVIP += `</tbody></table></div>`;
     }
@@ -2699,6 +2701,122 @@ function renderKasSekolah() {
     
     $('#area-summary-kas').html(htmlSummary);
     $('#bodyKasSekolah').html(htmlTr || '<tr><td colspan="7" class="text-center text-muted py-4">Belum ada transaksi pengeluaran reguler.</td></tr>');
+}
+
+// ==========================================
+// KUMPULAN FUNGSI CRUD (EDIT, SIMPAN, HAPUS PENGELUARAN)
+// ==========================================
+
+// Fungsi Helper untuk membersihkan format uang Rupiah
+function bersihkanUangKeAngka(str) {
+    if(!str) return 0;
+    return Number(str.toString().replace(/[^0-9]/g, '')) || 0;
+}
+
+// 1. Tombol Tambah Baru (Pastikan Tombol Bapak Memanggil Fungsi Ini)
+window.bukaModalTambahKas = function() {
+    window.idEditKas = null; // Reset Status ke Mode Tambah Baru
+    $('#inpKasTgl').val(new Date().toISOString().split('T')[0]);
+    $('#inpKasSpesifikasi').prop('selectedIndex', 0);
+    $('#inpKasNominal').val('');
+    $('#inpKasKet').val('');
+    
+    if(typeof bukaModalAman === 'function') bukaModalAman('modalTambahKas');
+    else $('#modalTambahKas').modal('show');
+}
+
+// 2. Tombol Edit (Akan Membuka Modal yang Sama Tapi Terisi Data)
+window.editPengeluaranKas = function(id) {
+    let d = dataKeuanganGlobal;
+    let allPengeluaran = [];
+    if(d.pengeluaran) allPengeluaran.push(...(Array.isArray(d.pengeluaran) ? d.pengeluaran : Object.values(d.pengeluaran)));
+    if(d.pengeluaranSekolah) allPengeluaran.push(...(Array.isArray(d.pengeluaranSekolah) ? d.pengeluaranSekolah : Object.values(d.pengeluaranSekolah)));
+    
+    let p = allPengeluaran.find(x => x && x[0] === id);
+    if(!p) return notifikasiAman("Data tidak ditemukan di database aktif!", "error");
+
+    window.idEditKas = id; // Kunci Status Menjadi Mode Edit!
+    $('#inpKasTgl').val(p[1]);
+    
+    // Pilih Opsi Kategori (Jika Kategorinya Tidak Ada di Dropdown, Tambahkan Dulu Otomatis)
+    if ($(`#inpKasSpesifikasi option[value="${p[3]}"]`).length === 0) {
+        $('#inpKasSpesifikasi').append(`<option value="${p[3]}">${p[3]}</option>`);
+    }
+    $('#inpKasSpesifikasi').val(p[3]); 
+    
+    $('#inpKasNominal').val(Number(p[4]).toLocaleString('id-ID'));
+    $('#inpKasKet').val(p[5] || '');
+    
+    if(typeof bukaModalAman === 'function') bukaModalAman('modalTambahKas');
+    else $('#modalTambahKas').modal('show');
+}
+
+// 3. Mesin Penyimpanan (Berlaku untuk Tambah Baru dan Update Edit)
+window.prosesSimpanKas = function() {
+    let tgl = $('#inpKasTgl').val();
+    let spec = $('#inpKasSpesifikasi').val();
+    let nom = bersihkanUangKeAngka($('#inpKasNominal').val());
+    let ket = $('#inpKasKet').val() || '-';
+    
+    if(!tgl || !spec || nom === 0) return notifikasiAman("Tolong lengkapi Tanggal, Kategori, dan Nominal!", "warning");
+    
+    Swal.fire({title:'Menyimpan Data...', didOpen:()=>Swal.showLoading()});
+    
+    // Jika window.idEditKas ada isinya, berarti UPDATE. Jika kosong, berarti TAMBAH BARU.
+    let id = window.idEditKas || 'KAS_' + Date.now(); 
+    let pet = currentUser.nama.toString().trim(); 
+    
+    // Tanamkan ID TP sesuai filter yang sedang aktif di Dropdown Bendahara
+    let pFilterRaw = $('#filterKasPetugas').val() || 'Semua';
+    let tpPengeluaran = "";
+    if (pFilterRaw !== 'Semua') {
+        let [zone, petFilter, tpIdsStr] = pFilterRaw.split('|||');
+        tpPengeluaran = tpIdsStr; // Kunci pengeluaran ini untuk TP tertentu
+        if(petFilter) pet = petFilter; // Sesuaikan nama petugas database
+    }
+
+    let dataSimpan = [id, tgl, pet, spec, nom, ket, tpPengeluaran];
+    
+    // Simpan data langsung ke Node Database PengeluaranSekolah
+    db.ref('Database_SIPITUNG/PengeluaranSekolah/' + id).set(dataSimpan).then(() => {
+        window.idEditKas = null; // Bersihkan kunci setelah berhasil
+        if(typeof bersihkanCache === 'function') bersihkanCache(); 
+        
+        try { bootstrap.Modal.getInstance(document.getElementById('modalTambahKas')).hide(); } catch(e){}
+        Swal.close(); 
+        
+        // Refresh Halaman agar langsung muncul perubahannya
+        if(typeof loadKeuanganPage === 'function') loadKeuanganPage(); 
+    }).catch(e => {
+        if(typeof tanganiError === 'function') tanganiError(e); 
+        else { console.error(e); Swal.fire("Error", "Gagal menyimpan", "error"); }
+    });
+}
+
+// 4. Tombol Hapus (Dilengkapi Konfirmasi)
+window.hapusPengeluaranKas = function(id) {
+    if(typeof konfirmasiAksi === 'function') {
+        konfirmasiAksi("Yakin ingin menghapus rincian ini secara permanen?", () => {
+            eksekusiHapusKasFirebase(id);
+        });
+    } else {
+        if(confirm("Yakin ingin menghapus rincian ini secara permanen?")) eksekusiHapusKasFirebase(id);
+    }
+}
+
+function eksekusiHapusKasFirebase(id) {
+    Swal.fire({title:'Menghapus...', didOpen:()=>Swal.showLoading()});
+    // Hapus dari node PengeluaranSekolah (Global)
+    db.ref('Database_SIPITUNG/PengeluaranSekolah/' + id).remove().then(() => {
+        // Hapus juga dari legacy jika nyangkut
+        return db.ref('Database_SIPITUNG/Pengeluaran/' + id).remove();
+    }).then(() => {
+        if(typeof bersihkanCache === 'function') bersihkanCache();
+        Swal.close();
+        if(typeof loadKeuanganPage === 'function') loadKeuanganPage(); 
+    }).catch(e => {
+        if(typeof tanganiError === 'function') tanganiError(e); else console.error(e);
+    });
 }
 
 // ==========================================
@@ -6097,7 +6215,7 @@ window.prosesUploadCSV = async function() {
 
 
 // ========================================================
-// 21. FUNGSI LOAD HALAMAN INPUT TABUNGAN (V4.1 SMART ANCHOR + EMPTY STATE)
+// 21. FUNGSI LOAD HALAMAN INPUT TABUNGAN (V4.4 SMART BLOCKER, AUTO-OPEN & SEQUENCE VALIDATOR)
 // ========================================================
 function loadInputTabunganPage() { 
     $('#kontenInputTP').html('<div class="text-center p-5"><i class="fas fa-spinner fa-spin fa-3x text-primary mb-3"></i><br><h5 class="text-muted">Sinkronisasi Database Pembayaran...</h5></div>'); 
@@ -6164,10 +6282,15 @@ function loadInputTabunganPage() {
 
         let hT='', hC=''; 
         let grandTotalInput = 0; 
+        
+        // Buat Peta (Map) Tab Index untuk fitur pelompat antar tab
+        window.mapTpToTabIndex = {};
 
         // 3. Render Tab berdasarkan TP yang Aktif
         tpPetugasAktif.forEach((tpRow, i) => {
             let tpId = tpRow[0].toString(); // INI KUNCI JANGKARNYA
+            window.mapTpToTabIndex[tpId] = i; // Simpan index tab dari TP ini
+            
             let tingkatKls = tpRow[2].toString().trim(); // "7", "8", atau "9"
             let biaya = Number(tpRow[4]) || 0; 
             let totalW = biaya * 12; 
@@ -6298,40 +6421,119 @@ function loadInputTabunganPage() {
     }).catch(e => tanganiError(e)); 
 }
 
-// FUNGSI LAINNYA (bukaModalInput, bukaModalInfo, prosesSimpanTabungan, dll)
-// TETAP MENGGUNAKAN KODE BAPAK YANG ASLI KARENA SUDAH SEMPURNA!
-// (Bapak cukup copy-paste fungsi lama Bapak di bawah fungsi loadInputTabunganPage ini)
+// ========================================================
+// FUNGSI PELOMPAT TAB (AUTO-OPEN INPUT MODAL)
+// ========================================================
+window.pindahTabInput = function(index, nisn, tpId, biaya) {
+    Swal.close();
+    
+    setTimeout(() => {
+        // 1. Pindah otomatis ke Tab kelas lama
+        $('button[data-bs-target="#in-tp' + index + '"]').click();
+        
+        // 2. Beri jeda 350ms agar animasi Bootstrap pindah tab selesai, lalu otomatis buka modal Input!
+        setTimeout(() => {
+            bukaModalInput(nisn, tpId, biaya);
+        }, 350);
+    }, 200);
+}
 
+// ========================================================
+// BUKA MODAL INPUT (DILENGKAPI SMART BLOCKER & CHECKER)
+// ========================================================
 window.bukaModalInput = function(nisn, tpId, biaya) { 
     tempNISN = nisn; tempTahunID = tpId; tempBiayaTP = biaya; 
+    
+    let sP = dataGlobal.siswa.find(s => s[0].toString() === nisn.toString()); 
+    if(!sP) return;
+
+    let tpObj = dataGlobal.tp.find(t => t[0].toString() === tpId.toString());
+    let curKls = tpObj ? tpObj[2].toString().trim() : "-";
+
+    // ====================================================
+    // JURUS SMART-BLOCKER: CEK TUNGGAKAN MASA LALU DULU!
+    // ====================================================
+    let peringatanHTML = [];
+
+    // Fungsi helper untuk mengecek tunggakan di kelas tertentu
+    const cekTunggakanMasaLalu = (namaTingkatKls, indexLaciTP, indexLaciDataKelas) => {
+        let prevTpId = sP[indexLaciTP];
+        if(!prevTpId || prevTpId.toString().trim() === '') return; // Abaikan jika tidak ada histori KTP di kelas itu
+
+        let prevTpObj = dataGlobal.tp.find(t => t[0] === prevTpId);
+        if(!prevTpObj) return;
+
+        let prevBiaya = Number(prevTpObj[4]) || 0;
+        let totalTagihanWajib = prevBiaya * 12;
+
+        let dataTabLama = dataGlobal.tabungan.filter(x => 
+            x && x[1].toString() === nisn.toString() && 
+            x[2].toString() === prevTpId.toString() && 
+            (x[7] === "Valid" || x[7] === "Menunggu Persetujuan" || !x[7])
+        );
+
+        let totalTelahDibayar = dataTabLama.length * prevBiaya;
+        let kurang = totalTagihanWajib - totalTelahDibayar;
+
+        // Jika ada kurang, buatkan Box Merah Peringatan
+        if(kurang > 0) {
+            let tabTargetIndex = window.mapTpToTabIndex[prevTpId];
+            let labelKlsLama = sP[indexLaciDataKelas] || `Kls ${namaTingkatKls}`;
+            
+            // TOMBOL SAKTI: Pindah tab dan langsung buka modal otomatis!
+            let btnPindah = tabTargetIndex !== undefined 
+                ? `<button type="button" class="btn btn-sm btn-danger mt-2 fw-bold shadow-sm" onclick="pindahTabInput(${tabTargetIndex}, '${nisn}', '${prevTpId}', ${prevBiaya})"><i class="fas fa-edit me-1"></i> Buka & Input ${labelKlsLama}</button>` 
+                : `<span class="badge bg-secondary mt-2">Dikelola oleh petugas lain</span>`;
+
+            peringatanHTML.push(`
+                <div class="alert alert-danger shadow-sm border-danger p-3 mb-2 text-start rounded-3">
+                    <div class="fw-bold mb-1"><i class="fas fa-exclamation-triangle"></i> Tunggakan Kelas ${namaTingkatKls} Terdeteksi!</div>
+                    Siswa ini belum melunasi tabungan di <b>${labelKlsLama}</b> sebesar <b class="text-danger">${formatRp(kurang)}</b>.
+                    <br>${btnPindah}
+                </div>
+            `);
+        }
+    };
+
+    // Eksekusi Pengecekan Mundur
+    if (curKls === '8' || curKls === '9') {
+        cekTunggakanMasaLalu('7', 8, 4); // Cek masa lalu: Kls 7 (Laci TP 8, Laci Kelas 4)
+    }
+    if (curKls === '9') {
+        cekTunggakanMasaLalu('8', 9, 5); // Cek masa lalu: Kls 8 (Laci TP 9, Laci Kelas 5)
+    }
+
+    // Jika ada dosa masa lalu, STOP eksekusi modal & tampilkan SweetAlert
+    if (peringatanHTML.length > 0) {
+        Swal.fire({
+            title: 'CEGAH INPUT!',
+            html: `<div class="mb-3">${peringatanHTML.join('')}</div><div class="text-muted small">Harap lunasi tagihan kelas sebelumnya terlebih dahulu untuk menjaga ketertiban data.</div>`,
+            icon: 'warning',
+            showConfirmButton: true,
+            confirmButtonText: 'Kembali',
+            confirmButtonColor: '#6c757d'
+        });
+        return; // Modal input kelas atas digagalkan
+    }
+    // ====================================================
+
+    // Jika aman tanpa tunggakan, lanjut buka Modal
     $('#chkTglManual').prop('checked', false); 
     $('#wadahTglManual').addClass('d-none'); 
     $('#inpTglManual').val(''); 
     
-    let sP = dataGlobal.siswa.find(s => s[0].toString() === nisn.toString()); 
     $('#mdlInputNISN').text(nisn); 
-    $('#mdlInputNama').text(sP ? sP[1] : "Tidak Ditemukan"); 
+    $('#mdlInputNama').text(sP[1]); 
     $('#mdlInputBiaya').text(formatRp(biaya)); 
 
-    // ====================================================
-    // FIX SINKRONISASI KELAS (ANTI-BUG 2 MASA BAKTI)
-    // ====================================================
     let kelasSpesifik = "-";
-    if (sP) {
-        // Ambil urutan/index tab yang sedang aktif (0, 1, 2, 3, 4, 5...)
-        let indexTabAktif = $('#tabInputTP .nav-item').index($('#tabInputTP .nav-link.active').parent());
-        
-        // Gunakan Modulo 3: 
-        // Index 0 & 3 = Kls 7 (sP[4]), Index 1 & 4 = Kls 8 (sP[5]), Index 2 & 5 = Kls 9 (sP[6])
-        let kolomKelas = 4 + (indexTabAktif % 3);
-        kelasSpesifik = sP[kolomKelas] || "-";
-    }
+    let indexTabAktif = $('#tabInputTP .nav-item').index($('#tabInputTP .nav-link.active').parent());
+    let kolomKelas = 4 + (indexTabAktif % 3);
+    kelasSpesifik = sP[kolomKelas] || "-";
     
-    // Simpan kelas ke variabel temp agar bisa dipakai saat konfirmasi simpan
     tempKelasSiswa = kelasSpesifik;
 
     $('#mdlInputKelas').html(`<span class="badge bg-warning text-dark fs-6 mt-1 mb-2 shadow-sm"><i class="fas fa-chalkboard-teacher me-1"></i> Kelas: ${kelasSpesifik}</span>`);
-    // ====================================================
     
     let tS = dataGlobal.tabungan.filter(x => 
         x && x[1].toString() == nisn.toString() && 
@@ -6353,7 +6555,6 @@ window.bukaModalInput = function(nisn, tpId, biaya) {
         $('#modalInputTabungan').modal('show');
     }
 }
-
 
 
 // ========================================================
@@ -6378,7 +6579,7 @@ function bukaModalInfo(nisn, tpId) {
         kelasSpesifik = sP[kolomKelas] || "-";
     }
 
-    // Tampilkan kelas di Modal Info (Pastikan ID mdlInfoKelas ada di HTML Bapak)[cite: 1]
+    // Tampilkan kelas di Modal Info
     $('#mdlInfoKelas').html(`<span class="badge bg-warning text-dark fs-6 mt-1 mb-2 shadow-sm"><i class="fas fa-chalkboard-teacher me-1"></i> Kelas: ${kelasSpesifik}</span>`);
     // ====================================================
 
@@ -6386,7 +6587,6 @@ function bukaModalInfo(nisn, tpId) {
     $('#sortInfo').val('input'); 
     renderInfoTabungan(); 
     
-    // Gunakan fungsi pembuka modal bawaan aplikasi Bapak
     if(typeof bukaModalAman === "function") {
         bukaModalAman('modalInfoTabungan'); 
     } else {
@@ -6420,7 +6620,7 @@ function renderInfoTabungan() {
 }
 
 // ==========================================
-// 3. FUNGSI SIMPAN KE FIREBASE DENGAN KONFIRMASI
+// 3. FUNGSI SIMPAN KE FIREBASE DENGAN KONFIRMASI (FIX: SEQUENCE VALIDATOR)
 // ==========================================
 function prosesSimpanTabungan() { 
     // 1. Ambil Bulan yang dipilih
@@ -6429,14 +6629,51 @@ function prosesSimpanTabungan() {
         selectedBulan.push($(this).val()); 
     }); 
     
-    // Validasi Awal
+    // Validasi Awal 1: Apakah ada bulan yang dipilih?
     if(selectedBulan.length === 0) return notifikasiAman("Centang bulan yang ingin dibayar!", "warning"); 
     
-    // 2. Siapkan Data untuk Peringatan Konfirmasi
+    // ====================================================
+    // Validasi Awal 2: PENDETEKSI LOMPATAN BULAN (CEK URUTAN)
+    // ====================================================
+    let adaLompatan = false;
+    let bulanTerlewat = [];
+
+    $('.chk-bulan').each(function() {
+        if (adaLompatan) return; // Hentikan pencarian jika sudah ketahuan melompat
+
+        let isChecked = $(this).is(':checked'); // Cek apakah dicentang (baru atau lama)
+        let isDisabled = $(this).is(':disabled'); // Cek apakah sudah dibayar bulan-bulan sebelumnya
+        let namaBulan = $(this).val();
+
+        if (!isChecked) {
+            // Bulan ini bolong (belum lunas dan tidak dicentang petugas)
+            bulanTerlewat.push(namaBulan);
+        } else if (isChecked && !isDisabled) {
+            // Ini adalah bulan yang BARU SAJA dicentang oleh petugas
+            // Jika sebelumnya ada yang bolong, berarti petugas melompat!
+            if (bulanTerlewat.length > 0) {
+                adaLompatan = true;
+            }
+        }
+    });
+
+    if (adaLompatan) {
+        // Cegah penyimpanan dan tampilkan pesan kesalahan
+        return Swal.fire({
+            title: 'Pembayaran Melompat!',
+            html: `Anda memilih bulan namun mengabaikan bulan sebelumnya.<br><br>Bulan yang terlewat: <b class="text-danger">${bulanTerlewat.join(', ')}</b>.<br><br><span class="text-muted small">Mohon perbaiki! Pembayaran harus diurutkan dari bulan paling awal yang belum lunas.</span>`,
+            icon: 'error',
+            confirmButtonColor: '#d33',
+            confirmButtonText: '<i class="fas fa-edit"></i> Perbaiki Centang'
+        });
+    }
+    // ====================================================
+
+    // 2. Siapkan Data untuk Peringatan Konfirmasi (Jika urutan sudah benar)
     let namaSiswa = $('#mdlInputNama').text();
-    let kelasSiswa = tempKelasSiswa || "-"; // Diambil dari variabel global saat buka modal
+    let kelasSiswa = tempKelasSiswa || "-"; 
     let totalNominal = selectedBulan.length * tempBiayaTP;
-    let formatTotal = Number(totalNominal).toLocaleString('id-ID'); // Format 50.000
+    let formatTotal = Number(totalNominal).toLocaleString('id-ID'); 
     
     // 3. TAMPILKAN PERINGATAN KONFIRMASI (SWEETALERT2)
     Swal.fire({
@@ -6455,20 +6692,19 @@ function prosesSimpanTabungan() {
         `,
         icon: 'question',
         showCancelButton: true,
-        confirmButtonColor: '#198754', // Warna Hijau
-        cancelButtonColor: '#d33',     // Warna Merah
+        confirmButtonColor: '#198754', 
+        cancelButtonColor: '#d33',     
         confirmButtonText: '<i class="fas fa-check-circle"></i> Ya, Data Benar',
         cancelButtonText: 'Batal / Perbaiki',
         reverseButtons: true
     }).then((result) => {
-        // JIKA PETUGAS KLIK "YA, DATA BENAR"
         if (result.isConfirmed) {
              eksekusiPenyimpananFirebase(selectedBulan);
         }
     });
 }
 
-// FUNGSI INTI UNTUK PENGIRIMAN DATA (DIPANGGIL SETELAH KONFIRMASI)
+// FUNGSI INTI UNTUK PENGIRIMAN DATA
 function eksekusiPenyimpananFirebase(selectedBulan) {
     let tglFix = new Date().toISOString().split('T')[0]; 
     if($('#chkTglManual').is(':checked')) { 
@@ -8032,13 +8268,13 @@ function previewLaporanAkuntansi() {
     trPeriode.sort((a,b) => a.tgl - b.tgl);
     
     // ==========================================
-    // HELPER FORMATTER SALDO MINUS KESELURUHAN (WEB, EXCEL, PDF)
+    // HELPER FORMATTER SALDO MINUS (TANPA KETERANGAN TEKS)
     // ==========================================
     const formatSaldo = (saldo) => {
         if (saldo < 0) {
-            let stringMinus = `- ${formatRp(Math.abs(saldo))} (saldo minus)`;
+            let stringMinus = `- ${formatRp(Math.abs(saldo))}`; // Hilang teks (saldo minus)
             return {
-                html: `<span class="text-danger fw-bold">- ${formatRp(Math.abs(saldo))} <small>(saldo minus)</small></span>`,
+                html: `<span class="text-danger fw-bold">- ${formatRp(Math.abs(saldo))}</span>`, // Hilang teks (saldo minus)
                 excel: stringMinus,
                 pdfTxt: stringMinus,
                 pdfSty: { textColor: [220, 53, 69], fontStyle: 'bold' } // Kode warna merah
@@ -8254,7 +8490,7 @@ $(document).on('mouseenter focus click', '#selTpImport', function() {
 });
 
 // ========================================================
-// 2. FUNGSI DOWNLOAD TEMPLATE (ANTI-CAMPUR DENGAN SMART ANCHOR)
+// 2. FUNGSI DOWNLOAD TEMPLATE (ANTI-CAMPUR DENGAN SMART ANCHOR & PILIHAN HISTORI)
 // ========================================================
 window.downloadTemplateDinamis = function() {
     let namaSaatIni = (typeof currentUser !== 'undefined' && currentUser.nama) ? currentUser.nama.toString().trim().toLowerCase().replace(/[^a-z0-9]/g, '') : "";
@@ -8267,6 +8503,34 @@ window.downloadTemplateDinamis = function() {
     let tpId = $('#selTpImport').val();
     if(!tpId) return notifikasiAman("Pilih Tahun Pelajaran di kotak dropdown terlebih dahulu!", "warning");
     
+    // MUNCULKAN POP-UP PILIHAN TEMPLATE (KOSONG vs BERISI)
+    Swal.fire({
+        title: 'Pilih Format Template',
+        html: `
+            <div class="text-start mt-2 p-2 border rounded bg-light" style="font-size: 0.95rem;">
+                <b class="text-primary">1. Kosongan:</b> Kolom bulan dibiarkan kosong agar cepat diisi.<br><br>
+                <b class="text-success">2. Dengan Histori:</b> Kolom <b>Mulai Bulan</b> dan <b>Sampai Bulan</b> akan otomatis terisi rentang bulan yang <b class="text-danger">sudah lunas</b>. Tinggal Bapak timpa/ubah saja di Excel ke nama bulan tagihan selanjutnya!
+            </div>
+        `,
+        icon: 'question',
+        showDenyButton: true,
+        showCancelButton: true,
+        confirmButtonText: '<i class="fas fa-file-csv"></i> Kosongan',
+        denyButtonText: '<i class="fas fa-file-excel"></i> Dengan Histori',
+        cancelButtonText: 'Batal',
+        confirmButtonColor: '#0d6efd',
+        denyButtonColor: '#198754'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            eksekusiDownloadTemplate(tpId, 'kosong');
+        } else if (result.isDenied) {
+            eksekusiDownloadTemplate(tpId, 'berisi');
+        }
+    });
+}
+
+// MESIN INTI PEMBUAT CSV
+function eksekusiDownloadTemplate(tpId, tipe) {
     let tpObj = dataGlobal.tp.find(t => t[0] === tpId);
     let biaya = Number(tpObj[4]) || 0;
     let tingkatKls = tpObj[2].toString().trim(); // Deteksi "7", "8", atau "9"
@@ -8314,19 +8578,50 @@ window.downloadTemplateDinamis = function() {
         return kelasA.localeCompare(kelasB); // Urutkan kelas dulu
     });
     
-    // Siapkan Template CSV
+    // Siapkan Template CSV 
     let csv = "NISN,Nama Siswa,Kelas,ID Tahun Pelajaran,Nominal Per Bulan,Mulai Bulan,Sampai Bulan\n";
     
     sswValid.forEach(s => {
+        let nisn = s[0].toString();
         let kls = s[4+laciOffset].toString().trim();
-        csv += `${s[0]},"${s[1]}",${kls},${tpId},${biaya},,\n`;
+        
+        let valMulai = "";
+        let valSampai = "";
+        
+        // Jika pilih 'berisi', cari data histori tabungan siswa tersebut
+        if (tipe === 'berisi') {
+            let tS = dataGlobal.tabungan.filter(x => 
+                x && 
+                x[1].toString() === nisn && 
+                x[2].toString() === tpId && 
+                (x[7] === "Valid" || x[7] === "Menunggu Persetujuan" || !x[7])
+            ); 
+            
+            let bulanLunas = tS.map(x => x[3]);
+            // Urutkan nama bulan sesuai standar (Juli -> Juni)
+            if(typeof bulanSetahun !== 'undefined') {
+                bulanLunas.sort((a, b) => bulanSetahun.indexOf(a) - bulanSetahun.indexOf(b));
+            }
+            
+            if (bulanLunas.length > 0) {
+                // Tampilkan bulan pertama dan terakhir yang sudah lunas
+                valMulai = bulanLunas[0]; 
+                valSampai = bulanLunas[bulanLunas.length - 1]; 
+            } else {
+                valMulai = "Belum Ada Histori";
+                valSampai = "Belum Ada Histori";
+            }
+        }
+        
+        csv += `${nisn},"${s[1]}",${kls},${tpId},${biaya},${valMulai},${valSampai}\n`;
     });
 
     // Proses Download File
+    let jenisNama = tipe === 'berisi' ? '_Hst' : '_Ksg';
     let blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     let link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
-    link.setAttribute("download", `Template_Input_${tpObj[1].replace(/\//g,'-')}_Kls${tingkatKls}.csv`);
+    link.setAttribute("download", `Template_Input_${tpObj[1].replace(/\//g,'-')}_Kls${tingkatKls}${jenisNama}.csv`);
     link.click();
 }
 
@@ -8422,7 +8717,8 @@ window.prosesUploadTabunganCSV = function() {
                         }
                     }
                 } else {
-                    gagalList.push({ nisn: nisn, nama: nama, bulan: 'Format Salah/Typo' });
+                    // Masuk ke sini jika mBulan berisi "Belum Ada Histori" (karena petugas lupa mengubahnya di Excel)
+                    gagalList.push({ nisn: nisn, nama: nama, bulan: 'Format Salah/Tidak Dirubah' });
                 }
             });
             
@@ -8448,14 +8744,14 @@ function tampilkanHasilImport(sukses, gagal, fileInput) {
     
     if(gagal.length > 0) {
         htmlPesan += `<div class="alert alert-warning p-2 text-start mt-2 border-warning shadow-sm">
-            <h6 class="fw-bold mb-2 text-dark"><i class="fas fa-info-circle"></i> Info (Sudah Pernah Dibayar / Typo): ${gagal.length} data</h6>
+            <h6 class="fw-bold mb-2 text-dark"><i class="fas fa-info-circle"></i> Info (Sudah Pernah Dibayar / Belum Diubah): ${gagal.length} data</h6>
             <div style="max-height: 180px; overflow-y: auto;">
                 <table class="table table-sm table-bordered mb-0 bg-white" style="font-size: 0.8rem;">
                     <thead class="table-dark text-center"><tr style="position: sticky; top: 0;"><th>NISN</th><th>Nama Siswa</th><th>Bulan Dilewati</th></tr></thead>
                     <tbody>`;
         gagal.forEach(g => { htmlPesan += `<tr><td class="text-center">${g.nisn}</td><td>${g.nama}</td><td class="text-danger fw-bold text-center">${g.bulan}</td></tr>`; });
         htmlPesan += `</tbody></table></div></div>
-        <p class="mt-2 small text-muted">*Bulan yang dilewati berarti sudah lunas sebelumnya. Uang untuk bulan lainnya tetap berhasil disimpan.</p>`;
+        <p class="mt-2 small text-muted">*Bulan yang dilewati berarti sudah lunas sebelumnya, atau teks histori belum Anda timpa/ubah menjadi bulan baru. Uang untuk bulan lainnya tetap berhasil disimpan.</p>`;
         
         Swal.fire({ title: 'Selesai dengan Catatan', html: htmlPesan, icon: 'info', width: '600px', confirmButtonColor: '#0d6efd' })
         .then(() => { paksaRefreshTabel(); }); 
@@ -8463,7 +8759,7 @@ function tampilkanHasilImport(sukses, gagal, fileInput) {
         Swal.fire({ title: 'Sempurna!', html: htmlPesan, icon: 'success', confirmButtonColor: '#198754' })
         .then(() => { paksaRefreshTabel(); }); 
     } else {
-        Swal.fire({ title: 'Tidak Ada Data Baru', text: 'Semua data yang diisi bulan pada CSV sudah lunas atau CSV kosong.', icon: 'info', confirmButtonColor: '#6c757d' })
+        Swal.fire({ title: 'Tidak Ada Data Baru', text: 'Semua data yang diisi bulan pada CSV sudah lunas, belum Anda ubah dari histori aslinya, atau CSV kosong.', icon: 'info', confirmButtonColor: '#6c757d' })
         .then(() => { paksaRefreshTabel(); }); 
     }
 }
@@ -8472,7 +8768,7 @@ function paksaRefreshTabel() {
     $('#kontenInputTP').html('<div class="text-center p-5"><h4><i class="fas fa-spinner fa-spin text-primary"></i> Menyinkronkan data baru...</h4></div>');
     bersihkanCache();
     loadInputTabunganPage(); 
-    loadDashboardPage();     
+    loadDashboardPage();    
 }
 
   // ==========================================
