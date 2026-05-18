@@ -489,6 +489,7 @@ body, html {
                     <button class="btn btn-danger fw-bold me-2 shadow-sm" onclick="bukaModalCetakKas()"><i class="fas fa-file-pdf"></i> Cetak Laporan Kas</button>
                     <button class="btn btn-success fw-bold me-2 shadow-sm" onclick="bukaModalKategori()"><i class="fas fa-tags"></i> Kelola Kategori</button>
                     <button class="btn btn-primary fw-bold shadow-sm" onclick="bukaModalTambahKas()"><i class="fas fa-plus"></i> Tambah Pengeluaran</button>
+                    
                     <button id="btnTambahPemasukanLain" class="btn btn-success shadow-sm" style="margin-left: 10px; margin-top: 10px;" onclick="bukaModalPemasukanLain()">
     <i class="fas fa-hand-holding-usd"></i> Tambah Pemasukan Lain
 </button>
@@ -1180,8 +1181,49 @@ body, html {
             </div>
         </div>
 
-        <div class="modal fade" id="modalTambahKas" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><div class="modal-header bg-primary text-white"><h5 class="modal-title fw-bold">Tambah Pengeluaran Kas</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div><div class="modal-body"><div class="mb-3"><label class="form-label">Tanggal Pengeluaran</label><input type="date" class="form-control" id="inpKasTgl"></div><div class="mb-3"><label class="form-label">Petugas (Potong Kas Siapa?)</label><select class="form-select" id="inpKasPetugas"></select></div><div class="mb-3"><label class="form-label">Spesifikasi (Kategori)</label><select class="form-select" id="inpKasSpesifikasi"></select></div><div class="mb-3"><label class="form-label">Nominal Pengeluaran</label><input type="text" class="form-control" id="inpKasNominal" oninput="formatInputUang(this)"></div><div class="mb-3"><label class="form-label">Keterangan / Catatan</label><textarea class="form-control" id="inpKasKet" rows="2"></textarea></div></div><div class="modal-footer"><button type="button" class="btn btn-primary w-100 fw-bold" onclick="simpanKasManual()">Simpan Pengeluaran</button></div></div></div></div>
-        
+        <div class="modal fade" id="modalTambahKas" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title fw-bold">Tambah Pengeluaran Kas</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">Tanggal Pengeluaran</label>
+                    <input type="date" class="form-control" id="inpKasTgl">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Petugas (Potong Kas Siapa?)</label>
+                    <select class="form-select" id="inpKasPetugas"></select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-bold text-primary">Spesifikasi (Kategori Utama)</label>
+                    <select class="form-select border-primary" id="inpKasSpesifikasi"></select>
+                </div>
+
+                <div class="mb-3 bg-light p-2 rounded border">
+                    <label class="form-label fw-bold text-info">Sub Kategori <small class="text-muted fw-normal">(Opsional)</small></label>
+                    <input type="text" class="form-control border-info" id="inpKasSubSpesifikasi" placeholder="Contoh: Pengeluaran ANBK, TKA, dll">
+                    <small class="text-muted" style="font-size: 0.75rem;">*Boleh dikosongkan. Ketik manual untuk mengelompokkan rincian.</small>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Nominal Pengeluaran</label>
+                    <input type="text" class="form-control fs-5 fw-bold text-danger" id="inpKasNominal" oninput="formatInputUang(this)">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Keterangan / Catatan</label>
+                    <textarea class="form-control" id="inpKasKet" rows="2"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary w-100 fw-bold" onclick="prosesSimpanKas()">
+                    <i class="fas fa-save"></i> Simpan Pengeluaran
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
         <div class="modal fade" id="modalKelolaKategori" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><div class="modal-header bg-success text-white"><h5 class="modal-title fw-bold">Kelola Spesifikasi (Kategori)</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div><div class="modal-body"><div class="input-group mb-3"><input type="text" class="form-control" id="inpKatBaru" placeholder="Nama Kategori Baru..."><button class="btn btn-success" onclick="simpanKategori()">Tambah</button></div><ul class="list-group" id="listKategori"></ul></div></div></div></div>
 
        <div class="modal fade" id="modalTambahBank" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><div class="modal-header bg-primary text-white"><h5 class="modal-title fw-bold">Tambah Transaksi Bank</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div><div class="modal-body"><div class="mb-3"><label>Tanggal</label><input type="date" class="form-control" id="inpBankTgl"></div><div class="mb-3"><label>Jenis Transaksi</label><select class="form-select" id="inpBankJenis"><option value="Bunga Bank">Bunga Bank (Menambah Saldo)</option><option value="Admin Bank">Admin Bank (Mengurangi Saldo)</option></select></div><div class="mb-3"><label>Nominal</label><input type="text" class="form-control" id="inpBankNominal" oninput="formatInputUang(this)"></div><div class="mb-3"><label>Keterangan</label><input type="text" class="form-control" id="inpBankKet"></div></div><div class="modal-footer"><button type="button" class="btn btn-primary w-100 fw-bold" onclick="prosesSimpanBank()">Simpan Transaksi</button></div></div></div></div>
@@ -2493,7 +2535,7 @@ window.simpanPengecualian = function() {
 }
 
 // ==========================================
-// 1. RENDER KAS SEKOLAH (V5.1 SMART-SYNC - ANTI SELISIH & ADA FITUR EDIT)
+// 1. RENDER KAS SEKOLAH (V5.2 SMART-SYNC - ANTI SELISIH, EDIT & SUB-KATEGORI)
 // ==========================================
 function renderKasSekolah() {
     let d = dataKeuanganGlobal; 
@@ -2578,8 +2620,10 @@ function renderKasSekolah() {
     
     semuaPengeluaran.forEach(item => {
         let p = item.data; let idRecord = String(p[0]); 
-        let pet = String(p[2] || '').trim(); let spec = p[3] || 'Tanpa Kategori'; 
+        let pet = String(p[2] || '').trim(); 
+        let spec = p[3] || 'Tanpa Kategori'; 
         let tpPengeluaran = p[6]; 
+        let subSpec = p[7] || ''; // MENGAMBIL DATA SUB KATEGORI
         let specDeteksi = String(spec).toUpperCase(); 
 
         // SYNC CHECK: Jika ini pengembalian lulusan, ambil nominal LIVE bukan nominal database
@@ -2610,9 +2654,15 @@ function renderKasSekolah() {
                     let foundId = arrTpPengeluaran.find(id => d.tpToGroupMap[id]);
                     if (foundId) groupKey = d.tpToGroupMap[foundId];
                 }
+                
+                // MENGATUR GRUP BERSARANG: KATEGORI -> SUB KATEGORI
+                let subSpecKey = subSpec.trim() === '' ? 'Umum' : subSpec.trim();
+                
                 if (!dataPerGroup[groupKey]) dataPerGroup[groupKey] = {};
-                if (!dataPerGroup[groupKey][spec]) dataPerGroup[groupKey][spec] = [];
-                dataPerGroup[groupKey][spec].push({ id: p[0], tgl: p[1], pet: pet, nom: nom, ket: p[5], isArsip: item.isZoneArsip });
+                if (!dataPerGroup[groupKey][spec]) dataPerGroup[groupKey][spec] = {};
+                if (!dataPerGroup[groupKey][spec][subSpecKey]) dataPerGroup[groupKey][spec][subSpecKey] = [];
+                
+                dataPerGroup[groupKey][spec][subSpecKey].push({ id: p[0], tgl: p[1], pet: pet, nom: nom, ket: p[5], isArsip: item.isZoneArsip, subSpec: subSpecKey });
                 grandKeluar += nom;
             }
         }
@@ -2627,12 +2677,15 @@ function renderKasSekolah() {
 
         let urutKeluar = 1;
         for(let spec in dp) {
-            htmlTr += `<tr class="table-warning fw-bold"><td colspan="7"><i class="fas fa-tag text-dark"></i> KATEGORI PENGELUARAN: <span class="text-dark">${spec}</span></td></tr>`;
-            let subtotal = 0;
+            htmlTr += `<tr class="table-warning fw-bold border-bottom border-warning"><td colspan="7"><i class="fas fa-tag text-dark"></i> KATEGORI: <span class="text-dark">${spec}</span></td></tr>`;
+            let subtotalSpec = 0;
 
             if (spec === 'PENGEMBALIAN TABUNGAN') {
                 let grupKembali = {};
-                dp[spec].forEach((item) => {
+                let allKembaliItems = [];
+                for(let subKey in dp[spec]) { allKembaliItems.push(...dp[spec][subKey]); } // Gabungkan jika ada sub-kategori nyasar
+
+                allKembaliItems.forEach((item) => {
                     let nisn = String(item.id).replace('RET_', '');
                     let sData = folderSiswaLulusan.find(x => x && String(x[0]) === nisn);
                     let kls = sData ? String(sData[6] || 'Umum') : 'Umum';
@@ -2646,32 +2699,51 @@ function renderKasSekolah() {
                 });
 
                 Object.values(grupKembali).forEach(g => {
-                    subtotal += g.nomTotal;
+                    subtotalSpec += g.nomTotal;
                     let namaDisplay = g.namaList.length > 1 ? g.namaList.join(', ') : g.namaList[0];
                     let btnAksi = g.isArsip ? `<span class="badge bg-secondary">Arsip</span>` : `<span class="badge bg-dark" title="Sesuai Potongan Lulusan Terbaru"><i class="fas fa-sync-alt text-warning"></i> Synced</span>`;
-                    htmlTr += `<tr><td class="text-center">${urutKeluar++}</td><td class="text-center">${formatTanggalAman(g.tgl)}</td><td class="text-center">${g.pet}</td><td class="fw-bold text-primary">Pengembalian ${g.namaList.length} Siswa (Kls ${g.kelas})</td><td class="text-end text-danger fw-bold">${formatRp(g.nomTotal)}</td><td><small class="text-muted">${namaDisplay}</small></td><td class="text-center">${btnAksi}</td></tr>`;
+                    htmlTr += `<tr><td class="text-center">${urutKeluar++}</td><td class="text-center">${formatTanggalAman(g.tgl)}</td><td class="text-center">${g.pet}</td><td class="fw-bold text-primary">Pengembalian ${g.namaList.length} Siswa (Kls ${g.kelas})</td><td class="text-end text-danger fw-bold">${formatRp(g.nomTotal)}</td><td><small class="text-muted">${namaDisplay}</small></td><td class="text-center align-middle">${btnAksi}</td></tr>`;
                 });
             } 
             else {
-                dp[spec].forEach((item) => {
-                    subtotal += item.nom; 
-                    // PENAMBAHAN FITUR TOMBOL EDIT DI SINI!
-                    let btnAksi = item.isArsip ? `<span class="badge bg-secondary">Arsip</span>` : `<button class="btn btn-sm btn-primary shadow-sm me-1 mb-1" onclick="editPengeluaranKas('${item.id}')" title="Edit Pengeluaran"><i class="fas fa-edit"></i></button><button class="btn btn-sm btn-danger shadow-sm mb-1" onclick="hapusPengeluaranKas('${item.id}')" title="Hapus Pengeluaran"><i class="fas fa-trash"></i></button>`;
-                    htmlTr += `<tr><td class="text-center">${urutKeluar++}</td><td class="text-center">${formatTanggalAman(item.tgl)}</td><td class="text-center">${item.pet}</td><td>${spec}</td><td class="text-end text-danger">${formatRp(item.nom)}</td><td>${item.ket||'-'}</td><td class="text-center align-middle">${btnAksi}</td></tr>`;
+                let sortedSubSpecs = Object.keys(dp[spec]).sort();
+                sortedSubSpecs.forEach(subKey => {
+                    let items = dp[spec][subKey];
+                    let subtotalSub = 0;
+                    
+                    // Header Sub Kategori (Hanya Muncul Jika Bukan 'Umum' Atau Ada Lebih Dari 1 Sub Kategori)
+                    if (subKey !== 'Umum' || sortedSubSpecs.length > 1) {
+                        htmlTr += `<tr class="table-info fw-bold"><td colspan="7" class="ps-4 text-primary"><i class="fas fa-angle-double-right"></i> Sub: ${subKey}</td></tr>`;
+                    }
+
+                    items.forEach((item) => {
+                        subtotalSub += item.nom; 
+                        subtotalSpec += item.nom;
+                        
+                        let labelSpec = spec;
+                        if (subKey !== 'Umum') labelSpec += ` <small class="text-muted fst-italic">(${subKey})</small>`;
+
+                        let btnAksi = item.isArsip ? `<span class="badge bg-secondary">Arsip</span>` : `<button class="btn btn-sm btn-primary shadow-sm me-1 mb-1" onclick="editPengeluaranKas('${item.id}')" title="Edit Pengeluaran"><i class="fas fa-edit"></i></button><button class="btn btn-sm btn-danger shadow-sm mb-1" onclick="hapusPengeluaranKas('${item.id}')" title="Hapus Pengeluaran"><i class="fas fa-trash"></i></button>`;
+                        htmlTr += `<tr><td class="text-center">${urutKeluar++}</td><td class="text-center">${formatTanggalAman(item.tgl)}</td><td class="text-center">${item.pet}</td><td>${labelSpec}</td><td class="text-end text-danger">${formatRp(item.nom)}</td><td>${item.ket||'-'}</td><td class="text-center align-middle">${btnAksi}</td></tr>`;
+                    });
+                    
+                    // Subtotal per Sub-Kategori (Jika dipecah-pecah)
+                    if (sortedSubSpecs.length > 1) {
+                        htmlTr += `<tr class="table-light fw-bold fst-italic text-secondary"><td colspan="4" class="text-end">Subtotal ${subKey} :</td><td class="text-end text-danger">${formatRp(subtotalSub)}</td><td colspan="2"></td></tr>`;
+                    }
                 });
             }
-            htmlTr += `<tr class="table-light fw-bold"><td colspan="4" class="text-end text-secondary">Subtotal ${spec} :</td><td class="text-end text-danger">${formatRp(subtotal)}</td><td colspan="2"></td></tr>`;
+            htmlTr += `<tr class="table-secondary fw-bold border-bottom border-dark text-dark"><td colspan="4" class="text-end">TOTAL ${spec} :</td><td class="text-end text-danger fs-6">${formatRp(subtotalSpec)}</td><td colspan="2"></td></tr>`;
         }
     });
     
-    if(htmlTr !== '') htmlTr += `<tr class="table-dark fw-bold"><td colspan="4" class="text-center fs-6">TOTAL PENGELUARAN REGULER</td><td class="text-end text-danger fs-6">${formatRp(grandKeluar)}</td><td colspan="2"></td></tr>`;
+    if(htmlTr !== '') htmlTr += `<tr class="table-dark fw-bold"><td colspan="4" class="text-center fs-6">GRAND TOTAL PENGELUARAN REGULER</td><td class="text-end text-danger fs-6">${formatRp(grandKeluar)}</td><td colspan="2"></td></tr>`;
 
     // 4. RENDER TABEL VIP (LAIN-LAIN)
     let htmlVIP = '';
     if (vipDataKasLain.length > 0) {
         htmlVIP += `<div class="table-responsive mb-4 shadow-sm border border-success rounded-3"><table class="table table-bordered table-hover align-middle mb-0"><thead class="table-success"><tr><th colspan="7" class="text-center text-success fs-5 fw-bold py-3"><i class="fas fa-gem"></i> TRANSAKSI KAS LAIN-LAIN (ABADI)</th></tr><tr class="text-center text-dark"><th>No</th><th>Tanggal</th><th>Petugas</th><th>Jenis Transaksi</th><th>Nominal</th><th>Keterangan</th><th>Aksi</th></tr></thead><tbody>`;
         vipDataKasLain.forEach((v, idx) => {
-            // PENAMBAHAN FITUR TOMBOL EDIT DI SINI!
             let btnAksi = v.isArsip ? `<span class="badge bg-secondary">Arsip</span>` : `<button class="btn btn-sm btn-primary shadow-sm me-1 mb-1" onclick="editPengeluaranKas('${v.id}')" title="Edit Kas"><i class="fas fa-edit"></i></button><button class="btn btn-sm btn-danger shadow-sm mb-1" onclick="hapusPengeluaranKas('${v.id}')" title="Hapus Kas"><i class="fas fa-trash"></i></button>`;
             let tdSpec = v.spec === 'KAS MASUK (LAIN-LAIN)' ? `<td class="text-success fw-bold"><i class="fas fa-arrow-down"></i> Pemasukan Lain</td>` : `<td class="text-danger fw-bold"><i class="fas fa-arrow-up"></i> Pengeluaran / Potongan Lain</td>`;
             let tdNom = v.spec === 'KAS MASUK (LAIN-LAIN)' ? `<td class="text-end text-success fw-bold">+${formatRp(v.nom)}</td>` : `<td class="text-end text-danger fw-bold">-${formatRp(Math.abs(v.nom))}</td>`;
@@ -2718,6 +2790,7 @@ window.bukaModalTambahKas = function() {
     window.idEditKas = null; // Reset Status ke Mode Tambah Baru
     $('#inpKasTgl').val(new Date().toISOString().split('T')[0]);
     $('#inpKasSpesifikasi').prop('selectedIndex', 0);
+    $('#inpKasSubSpesifikasi').val(''); // Reset kolom Sub Kategori baru
     $('#inpKasNominal').val('');
     $('#inpKasKet').val('');
     
@@ -2738,12 +2811,15 @@ window.editPengeluaranKas = function(id) {
     window.idEditKas = id; // Kunci Status Menjadi Mode Edit!
     $('#inpKasTgl').val(p[1]);
     
-    // Pilih Opsi Kategori (Jika Kategorinya Tidak Ada di Dropdown, Tambahkan Dulu Otomatis)
+    // Pilih Opsi Kategori
     if ($(`#inpKasSpesifikasi option[value="${p[3]}"]`).length === 0) {
         $('#inpKasSpesifikasi').append(`<option value="${p[3]}">${p[3]}</option>`);
     }
     $('#inpKasSpesifikasi').val(p[3]); 
     
+    // Isi Sub Kategori Baru
+    $('#inpKasSubSpesifikasi').val(p[7] || ''); 
+
     $('#inpKasNominal').val(Number(p[4]).toLocaleString('id-ID'));
     $('#inpKasKet').val(p[5] || '');
     
@@ -2755,10 +2831,11 @@ window.editPengeluaranKas = function(id) {
 window.prosesSimpanKas = function() {
     let tgl = $('#inpKasTgl').val();
     let spec = $('#inpKasSpesifikasi').val();
+    let subSpec = $('#inpKasSubSpesifikasi').val() || ''; // MENANGKAP VALUE SUB KATEGORI
     let nom = bersihkanUangKeAngka($('#inpKasNominal').val());
     let ket = $('#inpKasKet').val() || '-';
     
-    if(!tgl || !spec || nom === 0) return notifikasiAman("Tolong lengkapi Tanggal, Kategori, dan Nominal!", "warning");
+    if(!tgl || !spec || nom === 0) return notifikasiAman("Tolong lengkapi Tanggal, Kategori Utama, dan Nominal!", "warning");
     
     Swal.fire({title:'Menyimpan Data...', didOpen:()=>Swal.showLoading()});
     
@@ -2775,7 +2852,8 @@ window.prosesSimpanKas = function() {
         if(petFilter) pet = petFilter; // Sesuaikan nama petugas database
     }
 
-    let dataSimpan = [id, tgl, pet, spec, nom, ket, tpPengeluaran];
+    // SIMPAN SUB KATEGORI DI INDEX KE-7 (PALING BELAKANG)
+    let dataSimpan = [id, tgl, pet, spec, nom, ket, tpPengeluaran, subSpec];
     
     // Simpan data langsung ke Node Database PengeluaranSekolah
     db.ref('Database_SIPITUNG/PengeluaranSekolah/' + id).set(dataSimpan).then(() => {
@@ -3131,7 +3209,7 @@ window.renderRekapLulusan = function() {
 }
 
 // ==========================================
-// 3. RENDER ANALISIS SELISIH (V5.0 SMART-SYNC - ANTI SELISIH PENGEMBALIAN)
+// 3. RENDER ANALISIS SELISIH (V5.1 SMART-SYNC + DETEKSI SISWA BERHENTI/PINDAH)
 // ==========================================
 window.renderAnalisisSelisih = function() {
     let d = dataKeuanganGlobal; 
@@ -3215,7 +3293,7 @@ window.renderAnalisisSelisih = function() {
     });
 
     // ==========================================
-    // 2. HITUNG DARI SISI HAK/KEWAJIBAN SISWA
+    // 2A. HITUNG DARI SISI HAK/KEWAJIBAN SISWA (KELAS 9)
     // ==========================================
     let siswaKls9 = folderSiswa.filter(s => { 
         if(!s) return false; 
@@ -3279,6 +3357,60 @@ window.renderAnalisisSelisih = function() {
             let specPengembalian = "PENGEMBALIAN TABUNGAN";
             if(!rekapByGroup[groupKey][specPengembalian]) rekapByGroup[groupKey][specPengembalian] = { kasKeluar: 0, dipotongSiswa: 0 };
             rekapByGroup[groupKey][specPengembalian].dipotongSiswa += sisaTabungan;
+        }
+    });
+
+    // ==========================================
+    // 2B. DETEKSI TABUNGAN MENGENDAP (SISWA PINDAH/BERHENTI)
+    // ==========================================
+    let siswaBerhenti = folderSiswa.filter(s => { 
+        if(!s) return false; 
+        let kls3 = (s[6] || "").toString().trim().toUpperCase(); 
+        let pet = (s[7]||'').trim(); 
+        
+        // Cek jika siswa ini BUKAN KELAS 9 (artinya berhenti/pindah/tinggal kelas)
+        if (/(9|IX)/i.test(kls3)) return false; 
+        
+        let isPetugasCocok = isGlobal ? true : (pet === petFilter); 
+        if(!isPetugasCocok) return false;
+        
+        let isTpCocok = false;
+        if (isArsip) { 
+            isTpCocok = d.arsipPengaturan[s[0]]?.TPLulusanID === tpIdsStr; 
+        } else { 
+            isTpCocok = (tpIdsArr.includes(String(s[8])) || tpIdsArr.includes(String(s[9])) || tpIdsArr.includes(String(s[10]))); 
+        }
+        return isTpCocok;
+    });
+
+    siswaBerhenti.forEach(s => {
+        let nisn = s[0]; 
+        let pet = (s[7]||'').trim();
+        let totalTabungan = 0;
+        
+        folderTabungan.forEach(t => { 
+            if(t && String(t[1]) === String(nisn) && t[7] !== "Hapus" && t[7] !== "Menunggu Persetujuan") { 
+                totalTabungan += Number(t[4]) || 0; 
+            } 
+        });
+        
+        let activeTpId = [s[10], s[9], s[8]].find(id => id && tpIdsArr.includes(String(id)));
+        let groupKey = isGlobal && activeTpId && d.tpToGroupMap[activeTpId] ? d.tpToGroupMap[activeTpId] : pet;
+        createRekapNode(groupKey);
+
+        // Cek apakah tabungannya pernah dikembalikan
+        let sudahKembali = false;
+        if (d.statusKembali && d.statusKembali[nisn]) sudahKembali = true;
+        if (d.pengeluaranSekolah && d.pengeluaranSekolah["RET_" + nisn]) sudahKembali = true;
+        if (d.pengeluaran && d.pengeluaran["RET_" + nisn]) sudahKembali = true;
+
+        // Jika tabungannya masih mengendap, akui sebagai Surplus Kas Sekolah!
+        if (!sudahKembali && totalTabungan > 0) {
+            let specBerhenti = "TABUNGAN MENGENDAP (SISWA BERHENTI/PINDAH)";
+            if(!rekapByGroup[groupKey][specBerhenti]) rekapByGroup[groupKey][specBerhenti] = { kasKeluar: 0, dipotongSiswa: 0 };
+            
+            // Dimasukkan ke sisi "dipotongSiswa" agar seimbang dan diakui sebagai hak/surplus kas
+            rekapByGroup[groupKey][specBerhenti].dipotongSiswa += totalTabungan;
         }
     });
 
@@ -3559,7 +3691,7 @@ window.bukaModalCetakKas = function() {
 }
 
 // ==========================================
-// 5. PROSES CETAK PDF KAS (V5.1 GROUPING & SMART-SYNC)
+// 5. PROSES CETAK PDF KAS (V5.2 GROUPING BERTINGKAT & SMART-SYNC)
 // ==========================================
 window.prosesCetakPDFKas = function() {
     let tempat = $('#inpCetakKasTempat').val() || 'Surabaya'; 
@@ -3619,6 +3751,9 @@ window.prosesCetakPDFKas = function() {
         if(arrTpPengeluaran.length > 0) { isTpCocok = arrTpPengeluaran.some(id => tpIdsArr.includes(id)); }
         
         let spec = p[3] || 'Tanpa Kategori';
+        let subSpec = p[7] || ''; // TANGKAP SUB KATEGORI
+        let subSpecKey = subSpec.trim() === '' ? 'Umum' : subSpec.trim(); // Beri default 'Umum' jika kosong
+        
         let specUpper = String(spec).toUpperCase(); 
         let isKasLain = (specUpper === 'KAS MASUK (LAIN-LAIN)' || specUpper === 'PENGGUNAAN PEMASUKAN LAIN');
         
@@ -3643,11 +3778,15 @@ window.prosesCetakPDFKas = function() {
                 refundGroups[tglKey].listNama.push(namaSis);
                 totalPengeluaran += nomLive;
             } 
-            // --- PENGELUARAN BIASA ---
+            // --- PENGELUARAN BIASA (DENGAN SUB KATEGORI) ---
             else {
                 let nom = Number(p[4] || 0); 
-                if(!groupedPengeluaran[spec]) groupedPengeluaran[spec] = []; 
-                groupedPengeluaran[spec].push({ tgl: p[1], pet: pet, nom: nom, ket: p[5] }); 
+                
+                // Grouping Bertingkat: [Spesifikasi][Sub Spesifikasi]
+                if(!groupedPengeluaran[spec]) groupedPengeluaran[spec] = {}; 
+                if(!groupedPengeluaran[spec][subSpecKey]) groupedPengeluaran[spec][subSpecKey] = [];
+                
+                groupedPengeluaran[spec][subSpecKey].push({ tgl: p[1], pet: pet, nom: nom, ket: p[5] }); 
                 totalPengeluaran += nom; 
             }
         }
@@ -3655,9 +3794,11 @@ window.prosesCetakPDFKas = function() {
 
     // Masukkan hasil grouping pengembalian ke objek utama
     Object.values(refundGroups).forEach(g => {
-        if(!groupedPengeluaran[g.spec]) groupedPengeluaran[g.spec] = [];
+        if(!groupedPengeluaran[g.spec]) groupedPengeluaran[g.spec] = {};
+        if(!groupedPengeluaran[g.spec]['Umum']) groupedPengeluaran[g.spec]['Umum'] = []; // Pengembalian tidak butuh sub kategori
+        
         let ketGroup = `Pengembalian ${g.listNama.length} Siswa (Kls ${g.kls}) - [${g.listNama.join(', ')}]`;
-        groupedPengeluaran[g.spec].push({ tgl: g.tgl, pet: g.pet, nom: g.nomTotal, ket: ketGroup });
+        groupedPengeluaran[g.spec]['Umum'].push({ tgl: g.tgl, pet: g.pet, nom: g.nomTotal, ket: ketGroup });
     });
 
     // Mulai Menyusun PDF
@@ -3673,21 +3814,43 @@ window.prosesCetakPDFKas = function() {
     let sortedSpecs = Object.keys(groupedPengeluaran).sort();
     
     sortedSpecs.forEach(spec => { 
-        bodyAman.push([{ content: `KATEGORI PENGELUARAN: ${spec}`, colSpan: 5, styles: { fillColor: [255, 235, 156], fontStyle: 'bold', halign: 'left' } }]); 
-        let subtotal = 0; 
+        // Header Kategori Utama (Kuning)
+        bodyAman.push([{ content: `KATEGORI: ${spec}`, colSpan: 5, styles: { fillColor: [255, 235, 156], fontStyle: 'bold', halign: 'left', textColor: [0,0,0] } }]); 
         
-        // Urutkan data berdasarkan tanggal di dalam kategori
-        groupedPengeluaran[spec].sort((a,b) => new Date(a.tgl) - new Date(b.tgl)).forEach((item, idx) => { 
-            subtotal += item.nom; 
-            bodyAman.push([
-                {content: idx+1, styles:{halign:'center'}}, 
-                {content: formatTanggalAman(item.tgl), styles:{halign:'center'}}, 
-                item.pet, 
-                {content: item.ket || '-', styles: {cellWidth: 'auto'}}, 
-                {content: formatRp(item.nom), styles:{halign:'right'}}
-            ]); 
-        }); 
-        bodyAman.push([{ content: `Subtotal ${spec}`, colSpan: 4, styles: { halign: 'right', fontStyle: 'bold', fillColor: [245, 245, 245] } }, { content: formatRp(subtotal), styles: { halign: 'right', fontStyle: 'bold', fillColor: [245, 245, 245] } }]); 
+        let subtotalSpec = 0; 
+        let urutKeluar = 1;
+        
+        let sortedSubSpecs = Object.keys(groupedPengeluaran[spec]).sort();
+        sortedSubSpecs.forEach(subKey => {
+            let items = groupedPengeluaran[spec][subKey];
+            let subtotalSub = 0;
+
+            // Header Sub Kategori (Biru Muda) - Muncul jika dispesifikkan
+            if (subKey !== 'Umum' || sortedSubSpecs.length > 1) {
+                bodyAman.push([{ content: `   >> Sub Kategori: ${subKey}`, colSpan: 5, styles: { fillColor: [225, 245, 254], fontStyle: 'bold', halign: 'left', textColor: [41, 128, 185] } }]);
+            }
+
+            // Urutkan data berdasarkan tanggal di dalam sub-kategori
+            items.sort((a,b) => new Date(a.tgl) - new Date(b.tgl)).forEach((item) => { 
+                subtotalSub += item.nom;
+                subtotalSpec += item.nom; 
+                bodyAman.push([
+                    {content: urutKeluar++, styles:{halign:'center'}}, 
+                    {content: formatTanggalAman(item.tgl), styles:{halign:'center'}}, 
+                    item.pet, 
+                    {content: item.ket || '-', styles: {cellWidth: 'auto'}}, 
+                    {content: formatRp(item.nom), styles:{halign:'right'}}
+                ]); 
+            }); 
+
+            // Subtotal untuk Sub Kategori (Hanya muncul jika Kategori ini punya lebih dari 1 Sub)
+            if (sortedSubSpecs.length > 1) {
+                bodyAman.push([{ content: `Subtotal ${subKey}`, colSpan: 4, styles: { halign: 'right', fontStyle: 'italic', textColor: [100,100,100] } }, { content: formatRp(subtotalSub), styles: { halign: 'right', fontStyle: 'italic', textColor: [100,100,100] } }]); 
+            }
+        });
+
+        // Total Keseluruhan untuk Kategori Utama Tersebut (Abu-abu)
+        bodyAman.push([{ content: `TOTAL ${spec}`, colSpan: 4, styles: { halign: 'right', fontStyle: 'bold', fillColor: [240, 240, 240] } }, { content: formatRp(subtotalSpec), styles: { halign: 'right', fontStyle: 'bold', fillColor: [240, 240, 240], textColor: [220, 53, 69] } }]); 
     });
     
     if(bodyAman.length === 0) { bodyAman.push([{content: 'Tidak ada data pengeluaran yang tercatat', colSpan: 5, styles:{halign:'center'}}]); }
